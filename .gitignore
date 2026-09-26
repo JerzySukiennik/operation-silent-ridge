@@ -1,0 +1,7 @@
+.godot/
+build/
+Niepotrzebne/hp/
+*.tmp
+.DS_Store
+.env
+game/assets/**/src/

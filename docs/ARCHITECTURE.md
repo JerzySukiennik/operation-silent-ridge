@@ -1,0 +1,143 @@
+# Operation Silent Ridge — architecture contract (v1)
+
+Read `DESIGN.md` for the game. This file is the contract between modules. Each module is
+built by a separate agent in parallel, then integrated by the main agent. **Stay inside your
+owned paths; talk to other modules only through the interfaces below.**
+
+Engine: Godot **4.6.2** (`/Applications/Godot.app/Contents/MacOS/Godot`), Forward+, Jolt.
+Language: GDScript, typed. Code, comments, commits in English. Each file starts with a
+one-line header comment describing the file; no other comments except where a number
+needs its source/meaning (e.g. `# F135 max AB thrust, P&W 2024: 43,000 lbf`).
+
+## v1 scope
+
+F-35C flying (semi-sim, gamepad, 3rd-person chase cam, HMD-style HUD) over an ocean and
+fictional snowy mountains with a canyon, 1–4 players online via public room list, join in
+progress. Air start near the carrier position (the carrier itself is v2). Crash → respawn.
+
+## Hard rules
+
+- **Never open a Godot window on the Mac.** Mac = `--headless` only (import, parse check,
+  logic tests). Anything visual or performance-related runs on the HP laptop.
+- **HP laptop** (Windows 11, Ryzen 7 5800H, RTX 3050 Laptop **4 GB VRAM**, 8 GB RAM with only
+  ~3.5 GB free): run builds ONLY via `Niepotrzebne/hp-run.sh` (it holds a global lock so
+  runs from different agents never overlap; it waits for the lock up to 20 min):
+  `Niepotrzebne/hp-run.sh <tag> <build_dir> <out_dir> <timeout_s> <user args...>`
+  The build dir must contain `OperationSilentRidge.exe` (+ the webrtc dll). The exe gets
+  `--shots=<dir>` automatically; write screenshots and logs there. Print lines starting with
+  `REPORT ` for anything you want to read back (they are grepped from the log).
+  Keep runs short (≤ 90 s) — other agents are waiting for the lock.
+- **Performance target on HP: never below 30 fps, aim ≥ 45 fps average** at 1920×1080 output
+  with FSR 2 at 0.67 render scale (set in project.godot). Budget: terrain ≤ 8 ms GPU,
+  ocean ≤ 3 ms, sky/fog/lighting ≤ 4 ms, aircraft + VFX ≤ 3 ms. Process RAM ≤ 2.5 GB,
+  VRAM ≤ 3.2 GB. Measure, don't guess.
+- **Work in a private copy** to avoid clobbering each other's `.godot` import cache:
+  `rsync -a --delete --exclude .godot "<project>/game/" "<your scratch>/game/"`, then import
+  and export from there (`--headless --import`, then
+  `--headless --export-release "Windows Desktop" <your scratch>/build/OperationSilentRidge.exe`).
+  Write your real deliverables into the shared project under your owned paths only.
+  If another module's files are broken/incomplete in your copy, replace them in *your copy*
+  with a stub — never edit them in the shared project.
+- Per-module test scenes: `scenes/test/<module>_*.tscn`, launched with
+  `--scene=res://scenes/test/<module>_x.tscn` (the boot router in `scripts/main.gd` handles it).
+  Boot args are available as `Engine.get_meta("boot_args")` (Dictionary, e.g. `{"shots": "C:\\..."}`).
+- Assets: only CC0 / CC-BY (credit in `game/assets/CREDITS.md`, append a line per asset:
+  file → author, source URL, license). No NC/ND, no ripped game assets. Keep source files
+  (high-res originals) in `assets/**/src/` — excluded from export.
+- Units: metres, seconds, kg, radians internally. Godot axes: +Y up, -Z forward.
+- Don't touch `project.godot` except: the **world** module owns the `[rendering]` section,
+  and each module may tell the main agent in its final report what else it needs.
+
+## World layout (world module decides the exact numbers and documents them here)
+
+Map 80 × 80 km, origin at map centre, sea level y = 0. x, z ∈ [-40 000, 40 000].
+Ocean on the west side (x < about -12 km), a rugged fjord/cliff coastline, then fictional
+**snowy mountains** (Cascades-like: peaks 2 000–3 000 m, glaciers, conifer forest on lower
+slopes, rock + snow above treeline). A winding **canyon run ~25–30 km** from the coast to a
+**target valley** where the underground plant will be (v3). Canyon floor wide enough to fly
+(60–250 m), walls 300–1 000 m high, a few tight turns. Carrier placeholder position on the
+ocean ~40–50 km from the target.
+
+## Modules, owners, interfaces
+
+### main (main agent)
+Owns: `project.godot`, `scripts/main.gd`, `scenes/main.tscn`, `scenes/game.tscn`,
+`scripts/game.gd`, `scripts/test/autotest.gd`, `export_presets.cfg`, `docs/`,
+`scenes/aircraft/f35c_visual.tscn` + `assets/models/` (real Sketchfab F-35C, after v1 integration).
+`game.gd` instantiates World, spawns the local Aircraft, spawns/removes remote Aircraft on
+NetSync signals, calls `world.set_focus()` each frame, owns the HUD instance.
+
+### world — `scripts/world/`, `scenes/world/`, `shaders/world/`, `assets/world/`, `tools/terrain/`
+`scenes/world/world.tscn`, root script `class_name World extends Node3D`:
+```gdscript
+const SEA_LEVEL := 0.0
+func height_at(x: float, z: float) -> float        # terrain height (m), ≤ 0.5 m from rendered surface; negative under sea
+func surface_at(x: float, z: float) -> float       # max(height_at, SEA_LEVEL) (ocean waves ignored)
+func normal_at(x: float, z: float) -> Vector3
+func spawn_points() -> Array[Transform3D]          # ≥ 4 air-start transforms near the carrier, ~600 m, facing the coast
+func carrier_transform() -> Transform3D            # placeholder, used by v2
+func target_position() -> Vector3                  # target valley point, used by v3
+func canyon_path() -> PackedVector3Array           # canyon centreline (for autotest autopilot + future AI)
+func set_focus(world_pos: Vector3) -> void         # camera/player position each frame (LOD/streaming)
+```
+Owns WorldEnvironment, sun DirectionalLight3D, sky, fog, ocean, terrain, vegetation.
+Clear bright day, sun ~35–45° high. Must also export `height_at` bit-exactly usable from
+headless Mac tests (no GPU readback).
+
+### flight — `scripts/flight/`, `scenes/aircraft/f35c.tscn`, `scripts/ui/hud*.gd`, `scenes/ui/hud.tscn`, `shaders/vfx/`, `scenes/test/flight_*`
+- `Controls` autoload (`scripts/flight/controls.gd`): registers input actions in code
+  (gamepad first, keyboard fallback for debugging), exposes a per-frame `ControlInput`
+  (pitch, roll, yaw, throttle, afterburner, look...) and `Controls.override` for autotest autopilot.
+- `class_name F35FlightModel extends RefCounted` — pure simulation, no SceneTree access,
+  deterministic, testable headless. State: position, orientation (Basis/Quaternion),
+  velocity, angular velocity, throttle, fuel, mass.
+- `scenes/aircraft/f35c.tscn`, root `class_name Aircraft extends Node3D`:
+```gdscript
+var is_local := true
+var peer_id := 1
+var pilot_name := "Pilot"
+var world: Node   # has height_at/surface_at; may be null in tests (then sea level only)
+signal crashed(position: Vector3)
+func get_net_state() -> Dictionary     # {p: Vector3, q: Quaternion, v: Vector3, w: Vector3, thr: float, ab: bool, gear: bool, alive: bool}
+func apply_remote_state(state: Dictionary, sent_time: float) -> void  # for remote copies; interpolation handled in NetSync or here (flight decides, documents)
+func respawn(at: Transform3D) -> void
+func telemetry() -> Dictionary         # ias_kt, mach, alt_ft, radar_alt_ft, aoa_deg, g, heading_deg, throttle, ab, fuel_kg, vs_fpm
+```
+  Child `Visual` = instance of `res://scenes/aircraft/f35c_visual.tscn`. Visual contract:
+  root Node3D, nose towards -Z, +Y up, origin at CG, length ≈ 15.7 m, span ≈ 13.1 m.
+  Marker3D children: `Nozzle` (exhaust exit, facing +Z), `WingtipL`, `WingtipR`,
+  `Canopy`. The flight module ships a **placeholder** visual (clean procedural F-35-like
+  silhouette); the main agent replaces it with the real model keeping the same markers.
+- Chase camera (3rd person, right-stick orbit, speed-dependent FOV, G/buffet shake).
+- HUD overlay styled after F-35 HMD symbology (green, thin lines): flight path marker,
+  speed (kt) + Mach, altitude (ft) + radar altitude below 5 000 ft AGL, heading tape,
+  G, AoA, throttle/AB, fuel, teammate name tags (via `hud.set_teammates(Array[Dictionary])`).
+- VFX: afterburner plume, heat haze, wingtip vortex trails at high G/AoA, vapour at high G
+  and transonic, crash explosion.
+
+### net — `scripts/net/`, `scenes/ui/menu.tscn`, `scripts/ui/menu*.gd`, `scenes/test/net_*`
+Rewrite of Haystack's proven transport (reference copies in `Niepotrzebne/haystack_*`,
+`ntfy_stream.gd` already copied) with a **public room list instead of room codes**.
+- `Net` autoload (`scripts/net/net.gd`): `host(pilot_name)`, `join(room_id, pilot_name)`,
+  `leave()`, `start_browsing()`/`stop_browsing()`, signals `rooms_updated(rooms: Array)`
+  (each `{id, host, players, max, mission, version, age_s}`), `state_changed`,
+  `peer_joined(id)`, `peer_left(id)`; `is_online()`, `is_host()`, `my_id()`, `names`.
+- `NetSync` node (`scripts/net/net_sync.gd`), added by `game.gd`:
+  `register_local(aircraft)`, signals `player_spawned(id, name)`, `player_left(id)`,
+  `remote_state(id, state: Dictionary, sent_time: float)`; sends local aircraft state
+  ~30 Hz (unreliable ordered), host relays; join in progress works (late joiner receives
+  everyone). Include a clock offset estimate so `sent_time` is in the receiver's clock.
+- Menu (`scenes/ui/menu.tscn`): title over a dark background, pilot name, Host, room list
+  (auto-refresh, join by selecting a row), Settings placeholder, Quit. Fully gamepad
+  navigable. On success → `get_tree().change_scene_to_file("res://scenes/game.tscn")`.
+- Rooms are always public (DESIGN): playing solo = hosting a room others may join.
+  Offline fallback if ntfy is unreachable: play solo offline.
+
+### audio — `assets/audio/`, `scripts/audio/`, `scenes/test/audio_*`
+Real recordings only (DVIDS/US Navy public domain, Freesound CC0/CC-BY, Wikimedia Commons),
+no synthesis. v1: F-35/F135 engine external loops (idle, military, afterburner) with
+crossfade by throttle, doppler + distance for other players' jets, wind/airframe noise by
+IAS, afterburner light-up, sonic boom (heard from outside), crash explosion. 3rd-person
+listener. Deliver `class_name JetAudio extends Node3D` with
+`setup(is_local: bool)` and `update(telemetry: Dictionary, delta: float)`; the flight
+module/main agent attaches it to Aircraft.
