@@ -64,6 +64,8 @@ ocean ~40–50 km from the target.
 Owns: `project.godot`, `scripts/main.gd`, `scenes/main.tscn`, `scenes/game.tscn`,
 `scripts/game.gd`, `scripts/test/autotest.gd`, `export_presets.cfg`, `docs/`,
 `scenes/aircraft/f35c_visual.tscn` + `assets/models/` (real Sketchfab F-35C, after v1 integration).
+The real model already exists: `scenes/aircraft/f35c_visual_real.tscn` (script `scripts/aircraft_visual/f35c_visual.gd`,
+`set_gear(0.0 up … 1.0 down)`, same Marker3D contract, ~190k tris, gear animation baked). At integration it replaces the placeholder.
 `game.gd` instantiates World, spawns the local Aircraft, spawns/removes remote Aircraft on
 NetSync signals, calls `world.set_focus()` each frame, owns the HUD instance.
 

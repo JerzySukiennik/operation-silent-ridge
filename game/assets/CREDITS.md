@@ -1,0 +1,1 @@
+- assets/models/f35c/f35c.glb → "F-35A Lightning II" by shangus930, https://sketchfab.com/3d-models/a06d6113cfb44a0aa7b8f17106aca9c4, CC BY 4.0. Modified: wings extended to F-35C span (13.1 m) and tip chord, textures downscaled, gear animation re-baked to rigid transforms.
