@@ -16,8 +16,8 @@ print -r -- "../../../SilentRidgeUE/SilentRidgeUE.uproject -ResX=1920 -ResY=1080
 print -r -- "powershell -NoProfile -ExecutionPolicy Bypass -File $R\\tools\\run_ue.ps1 -Exe \"$EXE\" -Out \"$OUT\" -Log \"$LOG\" -ArgsFile \"$R\\tools\\args.txt\"" > "$TMP/run.cmd"
 cat "$TMP/args.txt" "$TMP/run.cmd"
 ssh $H "Remove-Item -Recurse -Force $OUT -ErrorAction SilentlyContinue; Remove-Item -Force $R\\build\\Windows\\SilentRidgeUE\\Saved\\Profiling\\CSV\\*.csv -ErrorAction SilentlyContinue; Remove-Item -Force $LOG -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force $OUT | Out-Null"
-scp -q "$TMP/args.txt" "$TMP/run.cmd" "$D/scripts/hp/run_ue.ps1" $H:"C:/Users/jurek/osr_ue/tools/"
-ssh $H "schtasks /create /tn OSRUE_run /tr $R\\tools\\run.cmd /sc once /st 23:59 /it /f | Out-Null; schtasks /run /tn OSRUE_run | Out-Null"
+scp -q "$TMP/args.txt" "$TMP/run.cmd" "$D/scripts/hp/run_ue.ps1" "$D/scripts/hp/task.ps1" $H:"C:/Users/jurek/osr_ue/tools/"
+ssh $H "powershell -NoProfile -ExecutionPolicy Bypass -File $R\\tools\\task.ps1 -Name OSRUE_run -Cmd $R\\tools\\run.cmd"
 t0=$(date +%s)
 while true; do
   sleep 5
@@ -25,7 +25,7 @@ while true; do
   case "$st" in *DONE*) break;; esac
   if [ $(( $(date +%s) - t0 )) -gt 900 ]; then echo "run timeout"; ssh $H "Get-Process UnrealGame -ErrorAction SilentlyContinue | Stop-Process -Force"; break; fi
 done
-ssh $H "schtasks /delete /tn OSRUE_run /f | Out-Null; Copy-Item $LOG $OUT\\game.log -ErrorAction SilentlyContinue; Copy-Item $R\\build\\Windows\\SilentRidgeUE\\Saved\\Profiling\\CSV\\*.csv $OUT\\ -ErrorAction SilentlyContinue"
+ssh $H "powershell -NoProfile -ExecutionPolicy Bypass -File $R\\tools\\task.ps1 -Name OSRUE_run -Remove; Copy-Item $LOG $OUT\\game.log -ErrorAction SilentlyContinue; Copy-Item $R\\build\\Windows\\SilentRidgeUE\\Saved\\Profiling\\CSV\\*.csv $OUT\\ -ErrorAction SilentlyContinue"
 L="$D/Niepotrzebne/runs/$TAG"; rm -rf "$L"; mkdir -p "$L"
 scp -q -r $H:"C:/Users/jurek/osr_ue/runs/$TAG/*" "$L/"
 echo "== $L"; ls "$L"; cat "$L/runner.txt"

@@ -8,7 +8,9 @@ CMOT = unreal.CustomMaterialOutputType
 def new_material(name, path="/Game/Materials"):
     full = path + "/" + name
     if EAL.does_asset_exist(full):
-        EAL.delete_asset(full)
+        m = unreal.load_asset(full)
+        MEL.delete_all_material_expressions(m)   # rebuild in place so references from meshes stay valid
+        return m
     return AT.create_asset(name, path, unreal.Material, unreal.MaterialFactoryNew())
 
 def tex_obj(mat, name, texpath, x, y, sampler_type):
@@ -61,14 +63,19 @@ texs = [("RockM", "T_rock_macro_A", ST.SAMPLERTYPE_COLOR), ("RockMN", "T_rock_ma
         ("Floor", "T_forest_floor_A", ST.SAMPLERTYPE_COLOR), ("Shore", "T_shore_A", ST.SAMPLERTYPE_COLOR),
         ("MasksA", "T_masks_a", ST.SAMPLERTYPE_LINEAR_COLOR), ("MasksB", "T_masks_b", ST.SAMPLERTYPE_LINEAR_COLOR),
         ("Noise", "T_noise", ST.SAMPLERTYPE_LINEAR_COLOR)]
-inputs = ["P", "N", "Cam", "TreeFar"] + [t[0] for t in texs]
-c = custom_node(m, code, inputs, [("NormalWS", CMOT.CMOT_FLOAT3), ("Rough", CMOT.CMOT_FLOAT1), ("AOut", CMOT.CMOT_FLOAT1), ("Spec", CMOT.CMOT_FLOAT1)])
+texs = [("Bake", "T_bake", ST.SAMPLERTYPE_LINEAR_COLOR)] + texs
+inputs = ["P", "N", "Cam", "TreeFar", "BounceGain", "SunLux", "AOStrength"] + [t[0] for t in texs]
+c = custom_node(m, code, inputs, [("NormalWS", CMOT.CMOT_FLOAT3), ("Rough", CMOT.CMOT_FLOAT1), ("AOut", CMOT.CMOT_FLOAT1), ("Spec", CMOT.CMOT_FLOAT1), ("Emis", CMOT.CMOT_FLOAT3)])
 wp = MEL.create_material_expression(m, unreal.MaterialExpressionWorldPosition, -900, -300)
 vn = MEL.create_material_expression(m, unreal.MaterialExpressionVertexNormalWS, -900, -250)
 cam = MEL.create_material_expression(m, unreal.MaterialExpressionCameraPositionWS, -900, -200)
 tf = MEL.create_material_expression(m, unreal.MaterialExpressionScalarParameter, -900, -150)
 tf.set_editor_property("parameter_name", "TreeFar"); tf.set_editor_property("default_value", 2600.0)
 conn(wp, "", c, "P"); conn(vn, "", c, "N"); conn(cam, "", c, "Cam"); conn(tf, "", c, "TreeFar")
+for k, (pn, dv) in enumerate([("BounceGain", float(os.environ.get("OSR_BOUNCE", "1.0"))), ("SunLux", float(os.environ.get("OSR_SUN_LUX", "10"))), ("AOStrength", float(os.environ.get("OSR_AO", "1.0")))]):
+    sp = MEL.create_material_expression(m, unreal.MaterialExpressionScalarParameter, -1100, -300 + k * 50)
+    sp.set_editor_property("parameter_name", pn); sp.set_editor_property("default_value", dv)
+    conn(sp, "", c, pn)
 for k, (pin, asset, st) in enumerate(texs):
     e = tex_obj(m, pin, "/Game/Textures/" + asset, -900, -100 + k * 60, st)
     conn(e, "", c, pin)
@@ -77,6 +84,7 @@ prop(c, "NormalWS", unreal.MaterialProperty.MP_NORMAL)
 prop(c, "Rough", unreal.MaterialProperty.MP_ROUGHNESS)
 prop(c, "AOut", unreal.MaterialProperty.MP_AMBIENT_OCCLUSION)
 prop(c, "Spec", unreal.MaterialProperty.MP_SPECULAR)
+prop(c, "Emis", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
 m.set_editor_property("used_with_nanite", True)
 MEL.recompile_material(m); EAL.save_loaded_asset(m)
 log("M_Terrain done")
@@ -131,6 +139,13 @@ for name, alb, nrm, masked in [("M_FirNeedles", "T_fir_twig_A", "T_fir_twig_N", 
         prop(tn, "RGB", unreal.MaterialProperty.MP_NORMAL)
     else:
         prop(mul, "", unreal.MaterialProperty.MP_BASE_COLOR)
+    # baked sky occlusion at the tree's ground position x self-occlusion towards the trunk base (no Lumen)
+    aoc = custom_node(m, "float2 uv = (float2(P.x, P.y) * 0.01 + 40000.0) / 80000.0; float sky = Texture2DSample(Bake, BakeSampler, uv).a; return sky * lerp(0.32, 1.0, saturate(L.z / 2000.0));", ["P", "L", "Bake"], [], -400, 450, CMOT.CMOT_FLOAT1)
+    conn(MEL.create_material_expression(m, unreal.MaterialExpressionWorldPosition, -700, 450), "", aoc, "P")
+    conn(MEL.create_material_expression(m, unreal.MaterialExpressionLocalPosition, -700, 500), "", aoc, "L")
+    bt = tex_obj(m, "Bake", "/Game/Textures/T_bake", -700, 550, ST.SAMPLERTYPE_LINEAR_COLOR)
+    conn(bt, "", aoc, "Bake")
+    prop(aoc, "", unreal.MaterialProperty.MP_AMBIENT_OCCLUSION)
     r = MEL.create_material_expression(m, unreal.MaterialExpressionConstant, -250, 300); r.set_editor_property("r", 0.9)
     prop(r, "", unreal.MaterialProperty.MP_ROUGHNESS)
     m.set_editor_property("used_with_instanced_static_meshes", True)

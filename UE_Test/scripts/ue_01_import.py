@@ -9,7 +9,9 @@ TER = os.path.join(GAME, "assets/world/terrain")
 
 def tex(path, name, kind):
     if EAL.does_asset_exist("/Game/Textures/" + name):
-        return
+        if name not in os.environ.get("OSR_REIMPORT", "").split(","):
+            return
+        EAL.delete_asset("/Game/Textures/" + name)
     t = import_file(path, "/Game/Textures", name)[0]
     if kind == "albedo":
         t.set_editor_property("srgb", True); t.set_editor_property("compression_settings", TC.TC_DEFAULT)
@@ -36,6 +38,7 @@ tex(os.path.join(TEX, "water_normal_b.png"), "T_water_b", "normal")
 tex(os.path.join(TER, "masks_a.png"), "T_masks_a", "mask")
 tex(os.path.join(TER, "masks_b.png"), "T_masks_b", "mask")
 tex(os.path.join(SRC, "ocean_depth.png"), "T_ocean_depth", "gray")
+tex(os.path.join(SRC, "bake_2048.png"), "T_bake", "mask")
 tex(os.path.join(TREES, "fir_twig_albedo.png"), "T_fir_twig_A", "albedo")
 tex(os.path.join(TREES, "fir_twig_normal.png"), "T_fir_twig_N", "normal")
 tex(os.path.join(TREES, "fir_bark_albedo.png"), "T_fir_bark_A", "albedo")

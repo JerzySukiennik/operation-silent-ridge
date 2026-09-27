@@ -2,6 +2,8 @@
 param([string]$Exe, [string]$Out, [string]$ArgsFile, [string]$ShotTimes = "3,10,13,18,23,28,33,38,43,48,61", [double]$Duration = 65, [string]$Log)
 $ErrorActionPreference = "Continue"
 Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+Add-Type 'using System;using System.Runtime.InteropServices;public class DpiFix{[DllImport("user32.dll")]public static extern bool SetProcessDPIAware();}'
+[DpiFix]::SetProcessDPIAware() | Out-Null
 $GameArgs = (Get-Content $ArgsFile -Raw).Trim()
 New-Item -ItemType Directory -Force $Out | Out-Null
 function Note($m) { Add-Content "$Out\runner.txt" ("{0:HH:mm:ss.fff} {1}" -f (Get-Date), $m) }

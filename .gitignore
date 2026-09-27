@@ -15,3 +15,7 @@ UE_Test/*
 !UE_Test/scripts/
 !UE_Test/README.md
 UE_Test/scripts/__pycache__/
+!UE_Test/SilentRidgeUE/
+UE_Test/SilentRidgeUE/*
+!UE_Test/SilentRidgeUE/Config/
+!UE_Test/SilentRidgeUE/SilentRidgeUE.uproject

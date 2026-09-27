@@ -29,10 +29,10 @@ for f in "$PARTS"/part_*; do
   done
 done
 ssh $H "cmd /c \"copy /b $R\\parts\\part_* $R\\proj.tar >nul\"; (Get-Item $R\\proj.tar).Length; Remove-Item -Recurse -Force $R\\parts"
-scp -q "$D/scripts/hp/package.cmd" "$D/scripts/hp/run_ue.ps1" $H:"C:/Users/jurek/osr_ue/tools/"
+scp -q "$D/scripts/hp/package.cmd" "$D/scripts/hp/run_ue.ps1" "$D/scripts/hp/task.ps1" $H:"C:/Users/jurek/osr_ue/tools/"
 # keep the HP-side Saved/Intermediate/DDC between runs (incremental cook); replace Content+Config only
 ssh $H "cd $R\\proj; if (Test-Path SilentRidgeUE\\Content) { Remove-Item -Recurse -Force SilentRidgeUE\\Content, SilentRidgeUE\\Config }; tar -xf $R\\proj.tar; Remove-Item $R\\proj.tar"
-ssh $H "Set-Content -Path $R\\tools\\pkg.cmd -Value 'call $R\\tools\\package.cmd $R\\proj\\SilentRidgeUE SilentRidgeUE $R\\build $R\\package.log' -Encoding ASCII; Remove-Item $R\\package.log -ErrorAction SilentlyContinue; schtasks /create /tn OSRUE_pkg /tr $R\\tools\\pkg.cmd /sc once /st 23:59 /it /f | Out-Null; schtasks /run /tn OSRUE_pkg | Out-Null"
+ssh $H "Set-Content -Path $R\\tools\\pkg.cmd -Value 'call $R\\tools\\package.cmd $R\\proj\\SilentRidgeUE SilentRidgeUE $R\\build $R\\package.log' -Encoding ASCII; Remove-Item $R\\package.log -ErrorAction SilentlyContinue; powershell -NoProfile -ExecutionPolicy Bypass -File $R\\tools\\task.ps1 -Name OSRUE_pkg -Background -Cmd $R\\tools\\pkg.cmd"
 t0=$(date +%s)
 while true; do
   sleep 20
@@ -41,4 +41,4 @@ while true; do
   if [ $(( $(date +%s) - t0 )) -gt 7200 ]; then echo "package timeout"; break; fi
 done
 echo "package wall time: $(( $(date +%s) - t0 )) s ; $st"
-ssh $H "schtasks /delete /tn OSRUE_pkg /f | Out-Null; Select-String -Path $R\\package.log -Pattern 'Error:|error |BUILD FAILED|Cook by the book total time|AutomationTool executed' | Select -Last 25 | % { \$_.Line.Substring(0, [Math]::Min(300, \$_.Line.Length)) }; (Get-ChildItem -Recurse $R\\build -File | Measure-Object Length -Sum).Sum/1MB"
+ssh $H "powershell -NoProfile -ExecutionPolicy Bypass -File $R\\tools\\task.ps1 -Name OSRUE_pkg -Remove; Select-String -Path $R\\package.log -Pattern 'Error:|error |BUILD FAILED|Cook by the book total time|AutomationTool executed' | Select -Last 25 | % { \$_.Line.Substring(0, [Math]::Min(300, \$_.Line.Length)) }; (Get-ChildItem -Recurse $R\\build -File | Measure-Object Length -Sum).Sum/1MB"

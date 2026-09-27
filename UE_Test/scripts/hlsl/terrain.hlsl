@@ -1,6 +1,6 @@
 // Terrain shading ported from game/shaders/world/terrain.gdshader (Godot space inside: x east, y up, z south, metres).
-// Inputs: P (abs world pos cm), N (world normal), Cam (camera pos cm), TreeFar (m, tree cull distance), textures RockM,RockMN,Rock,RockN,Scree,ScreeN,ScreeM,Snow,SnowN,SnowM,Ground,GroundN,Floor,Shore,MasksA,MasksB,Noise.
-// Outputs: return = base colour; NormalWS, Rough, AOut, Spec.
+// Inputs: P (abs world pos cm), N (world normal), Cam (camera pos cm), TreeFar (m, tree cull distance), BounceGain, SunLux, AOStrength, textures Bake (RGB sqrt(4*bounce/E_sun), A sky visibility, 2048^2), RockM,RockMN,Rock,RockN,Scree,ScreeN,ScreeM,Snow,SnowN,SnowM,Ground,GroundN,Floor,Shore,MasksA,MasksB,Noise.
+// Outputs: return = base colour; NormalWS, Rough, AOut (baked sky occlusion), Spec, Emis (baked one-bounce terrain GI).
 #define RockTint float3(0.5, 0.51, 0.54)
 #define SnowColor float3(0.88, 0.9, 0.93)
 #define CanopyColor float3(0.028, 0.042, 0.034)
@@ -125,5 +125,10 @@ if (near > 0.0) {
 NormalWS = float3(nn.x, nn.z, nn.y);
 Rough = lerp(lerp(0.93, 0.72, sw), 0.1, water);
 Spec = lerp(0.3, 0.5, max(water, sw));
-AOut = lerp(0.35, 1.0, ma.r);
+// baked lighting (fixed sun): sky visibility at 39 m + the Godot 19.5 m horizon AO for detail; one bounce from sunlit terrain as emissive
+float4 bk = S2(Bake, ((wp.xz + 40000.0) / 39.0625 + 0.5) / 2048.0 - 0.5 / 2048.0);
+float skyv = saturate(bk.a);
+AOut = lerp(1.0, saturate(skyv * lerp(0.45, 1.0, ma.r) * 1.08), AOStrength);
+float3 bounce = bk.rgb * bk.rgb * 0.25;
+Emis = col * bounce * BounceGain * SunLux / 3.14159;
 return col;
