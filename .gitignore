@@ -6,16 +6,14 @@ Niepotrzebne/hp/
 .env
 game/assets/**/src/
 
-# UE 5.7 feasibility test: keep only the README and the build scripts
-UE_Test/*
-!UE_Test/README.md
-!UE_Test/scripts/
+# UE project: only sources, config, the .uproject, README and build scripts are versioned (content is generated/binary)
 Niepotrzebne/work/
 UE_Test/*
-!UE_Test/scripts/
 !UE_Test/README.md
+!UE_Test/scripts/
 UE_Test/scripts/__pycache__/
 !UE_Test/SilentRidgeUE/
 UE_Test/SilentRidgeUE/*
+!UE_Test/SilentRidgeUE/Source/
 !UE_Test/SilentRidgeUE/Config/
 !UE_Test/SilentRidgeUE/SilentRidgeUE.uproject

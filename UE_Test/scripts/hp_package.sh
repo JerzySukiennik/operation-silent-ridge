@@ -1,17 +1,20 @@
 #!/bin/zsh
-# Syncs the UE project to the HP (content-only .uproject without editor Python plugins) and runs BuildCookRun there; prints timing and build size.
+# Syncs the UE project to the HP (.uproject with the C++ module for the Game target only -- the HP lacks the .NET Framework SDK that editor targets need -- and without the editor Python plugins) and runs BuildCookRun there; prints timing and build size.
 set -e
 D="$(cd "$(dirname "$0")/.." && pwd)"; H=jurek@MACNOTBOOK.local; R='C:\Users\jurek\osr_ue'
 source "$D/scripts/hp_lock.sh"
 ST="$D/Niepotrzebne/hp_stage/SilentRidgeUE"; rm -rf "$ST"; mkdir -p "$ST"
-rsync -a --delete "$D/SilentRidgeUE/Content" "$D/SilentRidgeUE/Config" "$ST/"
+rsync -a --delete "$D/SilentRidgeUE/Content" "$D/SilentRidgeUE/Config" "$D/SilentRidgeUE/Source" "$ST/"
 printf '\n[DevOptions.Shaders]\nNumUnusedShaderCompilingThreads=6\n' >> "$ST/Config/DefaultEngine.ini"
 cat > "$ST/SilentRidgeUE.uproject" <<'J'
 {
 	"FileVersion": 3,
 	"EngineAssociation": "5.7",
 	"Category": "",
-	"Description": "Operation Silent Ridge - UE 5.7 feasibility test (content-only)"
+	"Description": "Operation Silent Ridge (UE 5.7 port)",
+	"Modules": [
+		{ "Name": "SilentRidgeUE", "Type": "Runtime", "LoadingPhase": "Default", "TargetAllowList": [ "Game" ] }
+	]
 }
 J
 ( cd "$D/Niepotrzebne/hp_stage" && COPYFILE_DISABLE=1 tar cf ../proj.tar SilentRidgeUE )
@@ -31,7 +34,7 @@ done
 ssh $H "cmd /c \"copy /b $R\\parts\\part_* $R\\proj.tar >nul\"; (Get-Item $R\\proj.tar).Length; Remove-Item -Recurse -Force $R\\parts"
 scp -q "$D/scripts/hp/package.cmd" "$D/scripts/hp/run_ue.ps1" "$D/scripts/hp/task.ps1" $H:"C:/Users/jurek/osr_ue/tools/"
 # keep the HP-side Saved/Intermediate/DDC between runs (incremental cook); replace Content+Config only
-ssh $H "cd $R\\proj; if (Test-Path SilentRidgeUE\\Content) { Remove-Item -Recurse -Force SilentRidgeUE\\Content, SilentRidgeUE\\Config }; tar -xf $R\\proj.tar; Remove-Item $R\\proj.tar"
+ssh $H "cd $R\\proj; if (Test-Path SilentRidgeUE\\Content) { Remove-Item -Recurse -Force SilentRidgeUE\\Content, SilentRidgeUE\\Config, SilentRidgeUE\\Source -ErrorAction SilentlyContinue }; tar -xf $R\\proj.tar; Remove-Item $R\\proj.tar"
 ssh $H "Set-Content -Path $R\\tools\\pkg.cmd -Value 'call $R\\tools\\package.cmd $R\\proj\\SilentRidgeUE SilentRidgeUE $R\\build $R\\package.log' -Encoding ASCII; Remove-Item $R\\package.log -ErrorAction SilentlyContinue; powershell -NoProfile -ExecutionPolicy Bypass -File $R\\tools\\task.ps1 -Name OSRUE_pkg -Background -Cmd $R\\tools\\pkg.cmd"
 t0=$(date +%s)
 while true; do

@@ -2,7 +2,10 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.7",
 	"Category": "",
-	"Description": "Operation Silent Ridge - UE 5.7 feasibility test (content-only)",
+	"Description": "Operation Silent Ridge (UE 5.7 port)",
+	"Modules": [
+		{ "Name": "SilentRidgeUE", "Type": "Runtime", "LoadingPhase": "Default" }
+	],
 	"Plugins": [
 		{ "Name": "PythonScriptPlugin", "Enabled": true },
 		{ "Name": "EditorScriptingUtilities", "Enabled": true }
