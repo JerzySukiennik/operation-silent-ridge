@@ -13,7 +13,7 @@ Decided in a `/pytania` session on 2026-09-26. Real-world reference dossier with
 
 | topic | decision |
 |---|---|
-| Engine | **Godot 4.6**, Forward+, Jolt Physics |
+| Engine | **Unreal Engine 5.7.4** (since 2026-09-27, see `UE_PORT.md`; v1 was Godot 4.6) |
 | Target | Windows, laptop HP (Ryzen 7 5800H, RTX 3050 4 GB, 8 GB RAM) — **stable 30+ fps**, ~720p internal → 1080p via FSR 2 |
 | Testing | windowed tests only on HP (`hp-test.sh` pattern from Haystack/Timberline); Mac headless only |
 | Distribution | Windows zip on GitHub Releases + download button on gzowo.fun |
