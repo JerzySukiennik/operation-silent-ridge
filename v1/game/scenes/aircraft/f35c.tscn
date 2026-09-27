@@ -1,0 +1,17 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/flight/aircraft.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/aircraft/f35c_visual_real.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/flight/aircraft_vfx.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/flight/chase_camera.gd" id="4"]
+
+[node name="Aircraft" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Visual" parent="." instance=ExtResource("2")]
+
+[node name="Vfx" type="Node3D" parent="."]
+script = ExtResource("3")
+
+[node name="ChaseCamera" type="Camera3D" parent="."]
+script = ExtResource("4")
