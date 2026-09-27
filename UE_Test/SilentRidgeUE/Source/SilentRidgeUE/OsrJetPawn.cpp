@@ -866,12 +866,12 @@ void AOsrJetPawn::BuildJetVfx()
 		C->SetupAttachment(Root);
 		C->RegisterComponent();
 		const bool bFire = K < 5;
-		UMaterialInstanceDynamic* M = UMaterialInstanceDynamic::Create(bFire ? Add : Tr, this);
-		M->SetVectorParameterValue("Color", bFire ? FLinearColor(1.0f, 0.45f, 0.12f) : FLinearColor(0.09f, 0.085f, 0.08f));
+		UMaterialInstanceDynamic* M = UMaterialInstanceDynamic::Create(Tr, this);   // fire is translucent-emissive so it reads against bright snow
+		M->SetVectorParameterValue("Color", bFire ? FLinearColor(1.0f, 0.5f, 0.16f) : FLinearColor(0.09f, 0.085f, 0.08f));
 		M->SetScalarParameterValue("NoiseAmt", 0.8);
 		M->SetScalarParameterValue("Tiling", 2.0);
 		M->SetScalarParameterValue("Scroll", bFire ? 1.5 : 0.3);
-		M->SetScalarParameterValue("EdgeSoft", bFire ? 1.4 : 1.0);
+		M->SetScalarParameterValue("EdgeSoft", bFire ? 0.8 : 1.0);
 		M->SetScalarParameterValue("Intensity", bFire ? 0.0 : 1.0);
 		M->SetScalarParameterValue("Opacity", 0.0);
 		C->SetMaterial(0, M);
@@ -991,14 +991,14 @@ void AOsrJetPawn::UpdateWorldVfx(double Dt)
 	FMeshBuf S2;
 	if (K > 0.01)
 	{
-		const float Alpha = float(0.32 * K);
+		const float Alpha = float(0.16 * K);   // drawn after motion blur, so fainter than the Godot 0.32
 		for (const FStreak& S : Streaks)
 		{
 			const double Life = S.Age / S.Life;
 			const double Fade = Smoothstep(0.0, 0.25, Life) * (1.0 - Smoothstep(0.75, 1.0, Life));
 			const double Sc = 0.6 + 0.8 * FMath::Frac(S.P.X * 0.137 + S.P.Z * 0.071);
 			const FVector ToCam = (CamG - S.P).GetSafeNormal();
-			const FVector Side = FVector::CrossProduct(Dir, ToCam).GetSafeNormal() * 0.03 * Sc;
+			const FVector Side = FVector::CrossProduct(Dir, ToCam).GetSafeNormal() * 0.02 * Sc;
 			const FVector Along = Dir * 4.5 * Sc;
 			const int32 Base = S2.V.Num();
 			const FVector Pts[4] = {S.P - Along - Side, S.P - Along + Side, S.P + Along + Side, S.P + Along - Side};
@@ -1038,7 +1038,8 @@ void AOsrJetPawn::UpdateBlast(double Dt)
 			const FVector P = BlastAt + Off * U + FVector(0, 25.0 * U * U, 0);
 			Blast[K]->SetWorldLocation(ToUE(P));
 			Blast[K]->SetWorldScale3D(FVector(R * 2.0));   // engine sphere is 1 m across
-			BlastMats[K]->SetScalarParameterValue("Intensity", 60.0 * FMath::Pow(1.0 - U, 2.0));
+			BlastMats[K]->SetScalarParameterValue("Intensity", 4.0 + 30.0 * FMath::Pow(1.0 - U, 2.0));
+			BlastMats[K]->SetScalarParameterValue("Opacity", 0.95 * (1.0 - Smoothstep(0.55, 1.0, U)));
 			Blast[K]->SetVisibility(U < 1.0);
 		}
 		else

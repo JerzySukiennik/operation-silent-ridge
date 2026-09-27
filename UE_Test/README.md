@@ -27,3 +27,50 @@ Lumen off for the static world; fixed-sun lighting baked offline (`scripts/bake_
 | stage 1, first run after a re-cook (new PSOs) | 47.8 (all 48.3) | 34.6 (whole run) | 20.5 | 2.36 GB | 2.28 GB | no |
 
 Packaged build on the HP desktop: `SilentRidge_UE_Epic\PLAY - Epic.cmd`; side-by-side: `Niepotrzebne/compare_stage1/`.
+
+## Stage 2 — C++ project + flight (2026-09-27)
+
+C++ module `Source/SilentRidgeUE`: 1:1 port of the Godot F-35C flight model (120 Hz), v1 gamepad layout via runtime Enhanced Input, chase camera with speed cues + motion blur, HMD HUD, procedural VFX, jet audio (same 12 recordings, credits in `game/assets/CREDITS.md`), crash/respawn, pause menu, `-autotest` canyon autopilot, cinematic colour grade (`-nograde` to disable). HP packaging compiles the Game target only (editor targets need the .NET Framework SDK, not installed on the HP). Desktop build: `SilentRidge_UE_Stage2\PLAY.cmd`.
+
+Note: runs before stage 2 were DPI-unaware on the HP (125 % Windows scaling) and rendered at 1536x864, not 1080p; `bAllowHighDPIInGameMode=True` fixes it. Stage-2 numbers are true 1920x1080.
+
+Epic, 1920x1080, TSR 67 %, warm, autotest canyon without screenshots: 43.5 fps avg, 1% low 37.7, GPU 22.5 ms, VRAM 2.4 GB, RAM 2.2 GB (cloud shadow map 1024 / 48 samples, TSR history 100 %).
+
+### Flight numbers: Godot vs UE (`UnrealEditor-Cmd <uproject> -run=FlightNumbers`)
+
+| test | Godot 4.6 (GDScript) | UE 5.7 (C++) |
+|---|---|---|
+| level trim 250 kt TAS, sea level | AoA 5.7°  thr 32% | AoA 5.7°  thr 32% |
+| level trim 350 kt TAS, sea level | AoA 2.9°  thr 36% | AoA 2.9°  thr 36% |
+| level trim 450 kt TAS, sea level | AoA 1.7°  thr 45% | AoA 1.7°  thr 45% |
+| level trim M 0.6, 15000 ft | AoA 3.9°  thr 46% | AoA 3.9°  thr 46% |
+| level trim M 0.8, 15000 ft | AoA 2.0°  thr 53% | AoA 2.0°  thr 53% |
+| level trim M 0.8, 30000 ft | AoA 3.8°  thr 63% | AoA 3.8°  thr 63% |
+| approach, gear down, 135 KTAS, 20 % fuel | AoA 12.1°  thr 45%  17888 kg | AoA 12.1°  thr 45%  17888 kg |
+| sustained turn, M 0.8, 15,000 ft, max AB, 50 % fuel | 5.11 g  10.7°/s  (M 0.81) | 5.11 g  10.7°/s  (M 0.81) |
+| full aft stick, M 0.8, 15,000 ft | max 7.37 g, 37°/s, AoA 21° | max 7.37 g, 37°/s, AoA 21° |
+| full aft stick, M 0.9, sea level | max 7.52 g, 21°/s, AoA 8° | max 7.52 g, 21°/s, AoA 8° |
+| full aft stick, 330 kt, sea level | max 7.01 g, 45°/s, AoA 50° | max 7.01 g, 45°/s, AoA 50° |
+| full forward stick, M 0.8, 15,000 ft | min -3.01 g | min -3.01 g |
+| roll rate, 400 kt, sea level, full stick | 200°/s, 360° in 1.88 s | 200°/s, 360° in 1.88 s |
+| top speed, max AB, sea level | M 1.06  700 KCAS  702 KTAS | M 1.06  700 KCAS  702 KTAS |
+| top speed, max AB, 40,000 ft | M 1.57  516 KCAS  900 KTAS | M 1.57  516 KCAS  900 KTAS |
+| top speed, MIL, 328 ft | M 0.96  634 KCAS | M 0.96  634 KCAS |
+| top speed, MIL, 35000 ft | M 1.02  357 KCAS | M 1.02  357 KCAS |
+| accel M 0.8 → 1.2, 30,000 ft, max AB, 50 % fuel | 57 s | 57 s |
+| accel 250 → 500 / 600 KCAS, sea level, max AB | 14.7 s / 21.0 s | 14.7 s / 21.0 s |
+| max rate of climb, sea level (Ps at 1 g) | 48056 ft/min AB @ 560 kt, 24089 MIL | 48056 ft/min AB @ 560 kt, 24089 MIL |
+| 7.5 g turn from 450 KCAS, sea level, MIL | 453 → 443 → 418 KCAS (0/3/6 s) | 453 → 443 → 418 KCAS (0/3/6 s) |
+| zoom 600 KCAS → 150 KCAS, 60° climb, MIL | +22006 ft | +22006 ft |
+| idle + full aft stick 40 s, 15,000 ft | AoA max 50.4°, min 76 KCAS | AoA max 50.4°, min 76 KCAS |
+| vertical zoom to zero speed, idle, neutral | min 3 m/s → recovers at 198 kt, pitch -79° | min 3 m/s → recovers at 198 kt, pitch -79° |
+| time to 90° bank, full stick, 350 kt | 0.54 s | 0.54 s |
+| 5 g pull-up step, 400 kt: 63 % / 90 % / overshoot | 0.28 s / 0.50 s / +0.00 g | 0.28 s / 0.50 s / +0.00 g |
+| full right pedal 3 s, 250 kt | β -6.5°, heading +10.3°, bank 0.4° | β -6.5°, heading +10.3°, bank 0.4° |
+| throttle detent: MIL stop / re-press+hold → AB / LT | 1.00 / 1.39 / 0.55 | 1.00 / 1.39 / 0.55 |
+| stick shaping: 10 % / 50 % pitch stick | 0.046 / 0.294 of full command | 0.046 / 0.294 of full command |
+| determinism (two runs, 20 s random input) | identical | identical |
+| fuel flow, sea level, MIL / max AB | 3.8 / 11.0 kg/s | 3.8 / 11.0 kg/s |
+| full-fuel AB endurance at SL | 13.5 min | 13.5 min |
+
+32/32 rows identical to display precision
