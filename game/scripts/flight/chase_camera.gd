@@ -9,7 +9,7 @@ const ORBIT_YAW_MAX := deg_to_rad(150.0)
 const ORBIT_PITCH_MAX := deg_to_rad(55.0)
 const RECENTRE_DELAY := 0.8
 const FOV_SLOW := 62.0
-const FOV_FAST := 76.0
+const FOV_FAST := 84.0
 const CLEARANCE := 2.5
 
 var aircraft: Aircraft
@@ -27,6 +27,9 @@ var _dist := DISTANCE
 var _boom := 1.0
 var _crash_point := Vector3.ZERO
 var _crash_t := 0.0
+var _prev_tas := 0.0
+var _accel_pull := 0.0
+var _streaks: SpeedStreaks
 
 
 func setup(a: Aircraft) -> void:
@@ -35,6 +38,9 @@ func setup(a: Aircraft) -> void:
 	current = true
 	near = 0.5
 	far = 60000.0
+	_streaks = SpeedStreaks.new()
+	add_child(_streaks)
+	_streaks.setup(self, a)
 	snap()
 
 
@@ -102,7 +108,12 @@ func _place(delta: float) -> void:
 	var basis_f := Basis(_frame)
 	var orbit_b := basis_f * Basis(Vector3.UP, _orbit.x) * Basis(Vector3.RIGHT, -_orbit.y)
 	var pivot := aircraft.global_transform.origin
-	var offset := orbit_b * Vector3(0.0, HEIGHT, _dist)
+	if delta > 0.0:
+		var accel := (tas - _prev_tas) / delta
+		_accel_pull = lerpf(_accel_pull, clampf(accel * 0.12, -2.5, 4.0), 1.0 - exp(-delta * 1.5))
+	_prev_tas = tas
+	var speed_close := smoothstep(150.0, 330.0, tas) * 2.5
+	var offset := orbit_b * Vector3(0.0, HEIGHT - speed_close * 0.3, _dist - speed_close + _accel_pull)
 	var cam_pos := pivot + offset
 	var aim := pivot + basis_f.y * AIM_HEIGHT
 
@@ -124,7 +135,7 @@ func _place(delta: float) -> void:
 		xf.basis = xf.basis * Basis(Vector3.RIGHT, sy * a) * Basis(Vector3.UP, sx * a)
 	global_transform = xf
 	var speed_t := smoothstep(90.0, 420.0, tas)
-	var ab_kick := 3.0 * aircraft.model.ab
+	var ab_kick := 6.0 * aircraft.model.ab
 	fov = lerpf(fov, lerpf(FOV_SLOW, FOV_FAST, speed_t) + ab_kick, 1.0 - exp(-delta * 2.0) if delta > 0.0 else 1.0)
 
 
@@ -135,7 +146,7 @@ func _shake_level() -> float:
 	s += smoothstep(deg_to_rad(16.0), deg_to_rad(35.0), m.alpha) * 0.45
 	s += (1.0 - smoothstep(0.0, 0.07, absf(m.mach - 1.0))) * 0.3
 	var agl := m.position.y - aircraft.surface_height(m.position.x, m.position.z)
-	s += (1.0 - smoothstep(20.0, 150.0, agl)) * smoothstep(150.0, 300.0, m.tas) * 0.22
+	s += (1.0 - smoothstep(20.0, 300.0, agl)) * smoothstep(120.0, 300.0, m.tas) * 0.4
 	return s
 
 
