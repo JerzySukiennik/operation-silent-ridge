@@ -56,6 +56,7 @@ func _ready() -> void:
 	sync.player_spawned.connect(_on_player_spawned)
 	sync.player_left.connect(_on_player_left)
 	Net.state_changed.connect(_on_net_state)
+	_load_settings()
 	_build_pause()
 	jet.respawn(_spawn_point())
 	if args.has("autotest"):
@@ -178,6 +179,35 @@ func _build_pause() -> void:
 		b.add_theme_font_size_override("font_size", 22)
 		b.pressed.connect(spec[1])
 		box.add_child(b)
+	var inv := Button.new()
+	inv.name = "Invert"
+	inv.custom_minimum_size = Vector2(420, 54)
+	inv.add_theme_font_size_override("font_size", 22)
+	inv.pressed.connect(func():
+		Controls.invert_pitch = not Controls.invert_pitch
+		_save_settings()
+		_update_invert_label())
+	box.add_child(inv)
+	box.move_child(inv, box.get_child_count() - 2)
+	_update_invert_label()
+
+
+func _update_invert_label() -> void:
+	var inv: Button = pause_layer.find_child("Invert", true, false)
+	inv.text = "Stick up = nose %s" % ("UP (inverted)" if Controls.invert_pitch else "DOWN (flight sim)")
+
+
+func _load_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load("user://settings.cfg") == OK:
+		Controls.invert_pitch = bool(cfg.get_value("controls", "invert_pitch", false))
+
+
+func _save_settings() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load("user://settings.cfg")
+	cfg.set_value("controls", "invert_pitch", Controls.invert_pitch)
+	cfg.save("user://settings.cfg")
 
 
 func _set_paused(on: bool) -> void:
