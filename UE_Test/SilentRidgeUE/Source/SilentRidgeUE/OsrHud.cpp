@@ -2,10 +2,13 @@
 #include "OsrHud.h"
 #include "OsrJetPawn.h"
 #include "OsrControls.h"
+#include "OsrPadInput.h"
+#include "Misc/CommandLine.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "CanvasItem.h"
+#include "Framework/Application/SlateApplication.h"
 
 using namespace OsrMath;
 
@@ -108,6 +111,7 @@ void AOsrHud::DrawHUD()
 		Text(Centre + FVector2D(0, -40) * S, TEXT("CRASHED"), 40, AL_CENTER, WARN);
 		Help();
 		PauseMenu();
+		PadInfo();
 		return;
 	}
 	const FVector V = Jet->Model.Velocity;
@@ -126,6 +130,48 @@ void AOsrHud::DrawHUD()
 	Warnings(T);
 	Help();
 	PauseMenu();
+	PadInfo();
+}
+
+void AOsrHud::PadInfo()
+{
+	const FString Pad = FOsrPadInput::DescribeActivePad();
+	const FString PadLine = Pad.IsEmpty() ? FString(TEXT("No gamepad detected — using keyboard")) : TEXT("Gamepad: ") + Pad + TEXT(" detected");
+	if (GetWorld() && GetWorld()->GetTimeSeconds() < 6.0 && !Jet->bPaused)
+	{
+		Text(FVector2D(Centre.X, 170.0 * S), PadLine, 22, AL_CENTER, Pad.IsEmpty() ? WARN : GREEN);
+	}
+	if (Jet->bPaused)
+	{
+		Text(Centre + FVector2D(0, -84) * S, PadLine, 18, AL_CENTER, GREEN_DIM);
+	}
+	static const bool bDebug = FParse::Param(FCommandLine::Get(), TEXT("inputdebug"));
+	if (!bDebug) { return; }
+	const FOsrPadState P = FOsrPadInput::Get();
+	FString Hex;
+	for (int32 I = 0; I < FMath::Min(P.ReportLen, 16); ++I) { Hex += FString::Printf(TEXT("%02X "), P.Raw[I]); }
+	FString Btn;
+	const TPair<bool, const TCHAR*> B[] = {{P.bCross, TEXT("CROSS")}, {P.bCircle, TEXT("CIRCLE")}, {P.bSquare, TEXT("SQUARE")}, {P.bTriangle, TEXT("TRIANGLE")},
+		{P.bL1, TEXT("L1")}, {P.bR1, TEXT("R1")}, {P.bL3, TEXT("L3")}, {P.bR3, TEXT("R3")}, {P.bShare, TEXT("SHARE")}, {P.bOptions, TEXT("OPTIONS")},
+		{P.bPS, TEXT("PS")}, {P.bTouchpad, TEXT("TOUCHPAD")}};
+	for (const auto& It : B) { if (It.Key) { Btn += FString(It.Value) + TEXT(" "); } }
+	const FOsrControlInput& In = Jet->Controls.Input;
+	const FString Lines[] = {
+		FString::Printf(TEXT("INPUT DEBUG  pad: %s  (XInput attached: %s)"), P.bConnected ? *P.Name : TEXT("no Sony pad"),
+			FSlateApplication::IsInitialized() && FSlateApplication::Get().IsGamepadAttached() ? TEXT("yes") : TEXT("no")),
+		FString::Printf(TEXT("report id 0x%02X  len %d  count %lld   raw: %s"), P.ReportId < 0 ? 0 : P.ReportId, P.ReportLen, P.Reports, *Hex),
+		FString::Printf(TEXT("LX %+.2f  LY %+.2f  RX %+.2f  RY %+.2f  L2 %.2f  R2 %.2f  hat %d"), P.LX, P.LY, P.RX, P.RY, P.L2, P.R2, P.Hat),
+		FString::Printf(TEXT("buttons: %s"), Btn.IsEmpty() ? TEXT("-") : *Btn),
+		FString::Printf(TEXT("shaped: pitch %+.2f  roll %+.2f  yaw %+.2f  lever %.2f  brake %d  look %+.2f %+.2f"), In.Pitch, In.Roll, In.Yaw, Jet->Controls.GetLever(), In.bBrake ? 1 : 0, In.Look.X, In.Look.Y)};
+	FCanvasTileItem Bg(FVector2D(20, 190) * S, FVector2D(1100, 170) * S, FLinearColor(0, 0, 0, 0.55f));
+	Bg.BlendMode = SE_BLEND_Translucent;
+	Canvas->DrawItem(Bg);
+	double Y = 210.0;
+	for (const FString& L : Lines)
+	{
+		Text(FVector2D(36, Y) * S, L, 17, AL_LEFT, FLinearColor::White);
+		Y += 30.0;
+	}
 }
 
 FVector2D AOsrHud::FlightPath()
@@ -319,7 +365,7 @@ void AOsrHud::Help()
 		return;
 	}
 	const FVector2D Tl = FVector2D(60, 250) * S;
-	const FVector2D Sz = FVector2D(820, 60 + GOsrLayoutHelpCount * 34) * S;
+	const FVector2D Sz = FVector2D(900, 60 + GOsrLayoutHelpCount * 34) * S;
 	FCanvasTileItem Bg(Tl, Sz, FLinearColor(0.0f, 0.05f, 0.02f, 0.62f));
 	Bg.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Bg);
@@ -329,7 +375,7 @@ void AOsrHud::Help()
 	for (int32 I = 0; I < GOsrLayoutHelpCount; ++I)
 	{
 		Text(Tl + FVector2D(24, Y) * S, GOsrLayoutHelp[I].Key, 18, AL_LEFT, GREEN);
-		Text(Tl + FVector2D(200, Y) * S, GOsrLayoutHelp[I].Text, 18, AL_LEFT, GREEN_DIM);
+		Text(Tl + FVector2D(230, Y) * S, GOsrLayoutHelp[I].Text, 18, AL_LEFT, GREEN_DIM);
 		Y += 34.0;
 	}
 }

@@ -1,6 +1,7 @@
 // F-35C pawn: fixed-step flight model, v1 gamepad layout via runtime Enhanced Input, chase camera (ChaseCamera.gd port), procedural VFX, jet audio (jet_audio.gd local layers), crash + respawn.
 #include "OsrJetPawn.h"
 #include "OsrTerrain.h"
+#include "OsrPadInput.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -161,6 +162,7 @@ void AOsrJetPawn::BeginPlay()
 	Super::BeginPlay();
 	if (!FParse::Param(FCommandLine::Get(), TEXT("nograde"))) { ApplyColorGrade(); }
 	FOsrTerrain::Get();
+	FOsrPadInput::Start();
 	LoadSettings();
 	BuildJetVfx();
 	SetupAudio();
@@ -183,6 +185,12 @@ void AOsrJetPawn::ApplyColorGrade()
 	P.bOverride_VignetteIntensity = true;     P.VignetteIntensity = 0.45f;
 	P.bOverride_BloomIntensity = true;        P.BloomIntensity = 0.8f;
 	P.bOverride_BloomThreshold = true;        P.BloomThreshold = -1.0f;
+}
+
+void AOsrJetPawn::EndPlay(const EEndPlayReason::Type Reason)
+{
+	FOsrPadInput::Stop();
+	Super::EndPlay(Reason);
 }
 
 void AOsrJetPawn::PossessedBy(AController* NewController)
@@ -293,19 +301,22 @@ double AOsrJetPawn::ActionValue(FName Name) const
 
 FOsrRawInput AOsrJetPawn::ReadRaw() const
 {
+	// XInput pads + keyboard come through Enhanced Input; Sony pads (DS4/DualSense) through FOsrPadInput (HID) and are added on top
+	const FOsrPadState P = FOsrPadInput::Get();
+	auto Merge = [](double A, double B) { return FMath::Abs(A) >= FMath::Abs(B) ? A : B; };
 	FOsrRawInput R;
-	R.StickX = FMath::Clamp(ActionValue("PadLX") + ActionValue("KRollR") - ActionValue("KRollL"), -1.0, 1.0);
-	R.StickY = FMath::Clamp(-ActionValue("PadLY") + ActionValue("KPitchUp") - ActionValue("KPitchDown"), -1.0, 1.0);
-	R.RudderLeft = ActionValue("RudL");
-	R.RudderRight = ActionValue("RudR");
-	R.ThrottleUp = FMath::Clamp(ActionValue("ThrUp"), 0.0, 1.0);
-	R.ThrottleDown = FMath::Clamp(ActionValue("ThrDown"), 0.0, 1.0);
-	R.bBrake = ActionValue("Brake") > 0.5;
-	R.bGear = ActionValue("Gear") > 0.5;
-	R.LookX = FMath::Clamp(ActionValue("PadRX") + ActionValue("KLookR") - ActionValue("KLookL"), -1.0, 1.0);
-	R.LookY = FMath::Clamp(ActionValue("PadRY") + ActionValue("KLookU") - ActionValue("KLookD"), -1.0, 1.0);
-	R.bLookBack = ActionValue("LookBack") > 0.5;
-	R.bHelp = ActionValue("Help") > 0.5;
+	R.StickX = FMath::Clamp(Merge(ActionValue("PadLX"), P.LX) + ActionValue("KRollR") - ActionValue("KRollL"), -1.0, 1.0);
+	R.StickY = FMath::Clamp(Merge(-ActionValue("PadLY"), P.LY) + ActionValue("KPitchUp") - ActionValue("KPitchDown"), -1.0, 1.0);
+	R.RudderLeft = FMath::Max(ActionValue("RudL"), P.bL1 ? 1.0 : 0.0);
+	R.RudderRight = FMath::Max(ActionValue("RudR"), P.bR1 ? 1.0 : 0.0);
+	R.ThrottleUp = FMath::Clamp(FMath::Max(ActionValue("ThrUp"), P.R2), 0.0, 1.0);
+	R.ThrottleDown = FMath::Clamp(FMath::Max(ActionValue("ThrDown"), P.L2), 0.0, 1.0);
+	R.bBrake = ActionValue("Brake") > 0.5 || P.bCircle;
+	R.bGear = ActionValue("Gear") > 0.5 || P.bTriangle;
+	R.LookX = FMath::Clamp(Merge(ActionValue("PadRX"), P.RX) + ActionValue("KLookR") - ActionValue("KLookL"), -1.0, 1.0);
+	R.LookY = FMath::Clamp(Merge(ActionValue("PadRY"), -P.RY) + ActionValue("KLookU") - ActionValue("KLookD"), -1.0, 1.0);
+	R.bLookBack = ActionValue("LookBack") > 0.5 || P.bR3;
+	R.bHelp = ActionValue("Help") > 0.5 || P.bShare || P.bTouchpad;
 	return R;
 }
 
@@ -322,18 +333,19 @@ FString AOsrJetPawn::MenuLabel(int32 Index) const
 
 void AOsrJetPawn::UpdateMenu()
 {
-	const bool bStart = ActionValue("Start") > 0.5;
+	const FOsrPadState P = FOsrPadInput::Get();
+	const bool bStart = ActionValue("Start") > 0.5 || P.bOptions;
 	if (bStart && !bStartPrev)
 	{
 		bPaused = !bPaused;
 		MenuIndex = 0;
 	}
 	bStartPrev = bStart;
-	const double Ly = ActionValue("PadLY");
-	const bool bUp = ActionValue("MenuUp") > 0.5 || Ly > 0.6 || ActionValue("KPitchDown") > 0.5;
-	const bool bDown = ActionValue("MenuDown") > 0.5 || Ly < -0.6 || ActionValue("KPitchUp") > 0.5;
-	const bool bA = ActionValue("Accept") > 0.5;
-	const bool bB = ActionValue("Brake") > 0.5;
+	const double Ly = ActionValue("PadLY") - P.LY;   // + = stick pushed up
+	const bool bUp = ActionValue("MenuUp") > 0.5 || Ly > 0.6 || ActionValue("KPitchDown") > 0.5 || P.DPadUp();
+	const bool bDown = ActionValue("MenuDown") > 0.5 || Ly < -0.6 || ActionValue("KPitchUp") > 0.5 || P.DPadDown();
+	const bool bA = ActionValue("Accept") > 0.5 || P.bCross;
+	const bool bB = ActionValue("Brake") > 0.5 || P.bCircle;
 	if (bPaused)
 	{
 		if (bUp && !bUpPrev) { MenuIndex = (MenuIndex + MenuCount - 1) % MenuCount; }

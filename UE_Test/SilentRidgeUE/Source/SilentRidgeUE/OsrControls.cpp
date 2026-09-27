@@ -4,14 +4,14 @@
 
 const FOsrHelpRow GOsrLayoutHelp[] = {
 	{TEXT("Left stick"), TEXT("Pitch (G command) / roll (roll rate)")},
-	{TEXT("RT / LT"), TEXT("Throttle up / down; at MIL release RT, then press and hold for AB")},
-	{TEXT("LB / RB"), TEXT("Rudder left / right")},
+	{TEXT("RT / LT  (R2 / L2)"), TEXT("Throttle up / down; at MIL release RT, then press and hold for AB")},
+	{TEXT("LB / RB  (L1 / R1)"), TEXT("Rudder left / right")},
 	{TEXT("Right stick"), TEXT("Look around (auto-recentres)")},
 	{TEXT("R3 (hold)"), TEXT("Look back")},
-	{TEXT("B (hold)"), TEXT("Speedbrake")},
-	{TEXT("Y"), TEXT("Landing gear")},
-	{TEXT("Back / View"), TEXT("This help")},
-	{TEXT("Start / Menu"), TEXT("Pause menu (respawn, invert pitch, quit)")},
+	{TEXT("B / Circle (hold)"), TEXT("Speedbrake")},
+	{TEXT("Y / Triangle"), TEXT("Landing gear")},
+	{TEXT("Back / Share"), TEXT("This help")},
+	{TEXT("Start / Options"), TEXT("Pause menu (respawn, invert pitch, quit)")},
 };
 const int32 GOsrLayoutHelpCount = UE_ARRAY_COUNT(GOsrLayoutHelp);
 

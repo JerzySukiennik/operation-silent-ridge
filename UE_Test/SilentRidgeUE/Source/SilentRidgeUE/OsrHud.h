@@ -39,4 +39,5 @@ private:
 	void Warnings(const FOsrTelemetry& T);
 	void Help();
 	void PauseMenu();
+	void PadInfo();
 };

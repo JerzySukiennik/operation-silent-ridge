@@ -2,17 +2,20 @@ OPERATION SILENT RIDGE - UE 5.7 stage 2 (flight)
 
 Start: double-click PLAY.cmd. You start in the air over the ocean, heading for the canyon mouth.
 
-Gamepad (Xbox layout, same as the Godot v1):
+Gamepad: Xbox (XInput) pads and Sony DualShock 4 / DualSense (USB or Bluetooth) work out of the box.
+Layout (Xbox name / PlayStation name):
   Left stick      pitch (G command) / roll (roll rate)
-  RT / LT         throttle up / down. At MIL (100 %) release RT, then press and HOLD it again for afterburner
-  LB / RB         rudder left / right
+  RT / LT (R2/L2) throttle up / down. At MIL (100 %) release RT, then press and HOLD it again for afterburner
+  LB / RB (L1/R1) rudder left / right
   Right stick     look around (auto-recentres); R3 (hold) = look back
-  B (hold)        speedbrake
-  Y               landing gear (drag + HUD "GEAR"; the model has no gear animation yet)
-  BACK / View     controls help
-  START / Menu    pause menu: Resume / Respawn / Invert pitch / Quit (D-pad or stick + A, B = back)
+  B / Circle      speedbrake (hold)
+  Y / Triangle    landing gear (drag + HUD "GEAR"; the model has no gear animation yet)
+  BACK / Share    controls help
+  START / Options pause menu: Resume / Respawn / Invert pitch / Quit (D-pad or stick + A/Cross, B/Circle = back)
 
 Keyboard fallback: W/S pitch, A/D roll, Q/E rudder, Shift/Ctrl throttle, B brake, G gear, C look back,
 I/J/K/L look, F1 help, Esc or P menu, Enter = select.
 
 Crashing respawns you at the ocean start after 4 s.
+
+If the pad seems wrong: start PLAY - input debug.cmd and send a screenshot of the white INPUT DEBUG box.
