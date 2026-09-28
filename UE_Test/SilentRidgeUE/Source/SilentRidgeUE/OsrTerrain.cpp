@@ -1,4 +1,4 @@
-// Loads Content/Data/terrain.osrh (written by scripts/make_height_data.py) and samples it exactly like the tile meshes are triangulated.
+// Loads Content/Data/terrain.osrh (OSR2, written by scripts/terrain_v2/export_tiles.py) and samples it exactly like the tile meshes are triangulated.
 #include "OsrTerrain.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -17,65 +17,64 @@ bool FOsrTerrain::Load()
 {
 	TArray<uint8> Bytes;
 	const FString Path = FPaths::ProjectContentDir() / TEXT("Data/terrain.osrh");
-	if (!FFileHelper::LoadFileToArray(Bytes, *Path) || Bytes.Num() < 20)
+	if (!FFileHelper::LoadFileToArray(Bytes, *Path) || Bytes.Num() < 24)
 	{
 		UE_LOG(LogTemp, Error, TEXT("OSR terrain data missing: %s"), *Path);
 		return false;
 	}
-	if (FMemory::Memcmp(Bytes.GetData(), "OSRH", 4) != 0) { return false; }
-	uint32 N = 0, T = 0;
-	float Mn = 0.f, Rg = 0.f;
+	if (FMemory::Memcmp(Bytes.GetData(), "OSR2", 4) != 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("OSR terrain data: not OSR2"));
+		return false;
+	}
+	uint32 N = 0;
+	float Lc = 0.f, Fc = 0.f, Mn = 0.f, Rg = 0.f;
 	FMemory::Memcpy(&N, Bytes.GetData() + 4, 4);
-	FMemory::Memcpy(&T, Bytes.GetData() + 8, 4);
-	FMemory::Memcpy(&Mn, Bytes.GetData() + 12, 4);
-	FMemory::Memcpy(&Rg, Bytes.GetData() + 16, 4);
-	const int64 Need = 20 + int64(T) * T + int64(N) * N * 2;
-	if (Bytes.Num() < Need) { return false; }
-	Size = int32(N);
-	Tiles = int32(T);
-	HMin = Mn;
-	HRange = Rg;
-	Cell = 2.0 * MapHalf / Size;
-	Steps.SetNumUninitialized(Tiles * Tiles);
-	FMemory::Memcpy(Steps.GetData(), Bytes.GetData() + 20, Tiles * Tiles);
-	Samples.SetNumUninitialized(Size * Size);
-	FMemory::Memcpy(Samples.GetData(), Bytes.GetData() + 20 + Tiles * Tiles, int64(Size) * Size * 2);
-	UE_LOG(LogTemp, Display, TEXT("OSR terrain loaded %dx%d, %d tiles"), Size, Size, Tiles);
+	FMemory::Memcpy(&Lc, Bytes.GetData() + 8, 4);
+	FMemory::Memcpy(&Fc, Bytes.GetData() + 12, 4);
+	FMemory::Memcpy(&Mn, Bytes.GetData() + 16, 4);
+	FMemory::Memcpy(&Rg, Bytes.GetData() + 20, 4);
+	Lat = int32(N); LatCell = Lc; Fine = Fc; HMin = Mn; HRange = Rg;
+	const int64 TableAt = 24, DataAt = TableAt + int64(Lat) * Lat * 12;
+	if (Bytes.Num() < DataAt) { return false; }
+	const int32 FineNodes = FMath::RoundToInt32(LatCell / Fine);
+	Cells.SetNum(Lat * Lat);
+	int64 MaxEnd = 0;
+	for (int32 K = 0; K < Lat * Lat; ++K)
+	{
+		uint32 St = 0; uint64 Off = 0;
+		FMemory::Memcpy(&St, Bytes.GetData() + TableAt + K * 12, 4);
+		FMemory::Memcpy(&Off, Bytes.GetData() + TableAt + K * 12 + 4, 8);
+		FCell& C = Cells[K];
+		C.Step = int32(St);
+		C.N = St > 0 ? FineNodes / int32(St) + 1 : 0;
+		C.Offset = int64(Off) / 2;
+		MaxEnd = FMath::Max<int64>(MaxEnd, int64(Off) + int64(C.N) * C.N * 2);
+	}
+	if (Bytes.Num() < DataAt + MaxEnd) { return false; }
+	Samples.SetNumUninitialized(int32(MaxEnd / 2));
+	FMemory::Memcpy(Samples.GetData(), Bytes.GetData() + DataAt, MaxEnd);
+	Loaded = true;
+	UE_LOG(LogTemp, Display, TEXT("OSR terrain v2 loaded: %dx%d lattice, %.1f MB samples"), Lat, Lat, MaxEnd / 1048576.0);
 	return true;
-}
-
-double FOsrTerrain::Sample(int32 I, int32 J) const
-{
-	// the tile builder pads the grid by repeating the last row/column (index Size == Size-1)
-	I = FMath::Clamp(I, 0, Size - 1);
-	J = FMath::Clamp(J, 0, Size - 1);
-	return HMin + HRange * double(Samples[J * Size + I]) / 65535.0;
 }
 
 double FOsrTerrain::HeightAt(double X, double Z) const
 {
-	if (!IsLoaded()) { return -1000.0; }
-	const double U = (X + MapHalf) / Cell;
-	const double V = (Z + MapHalf) / Cell;
-	if (U < 0.0 || V < 0.0 || U >= Size || V >= Size) { return -1000.0; }
-	const int32 TileSpan = Size / Tiles;
-	const int32 Ti = FMath::Min(int32(U) / TileSpan, Tiles - 1);
-	const int32 Tj = FMath::Min(int32(V) / TileSpan, Tiles - 1);
-	int32 S = Steps[Tj * Tiles + Ti];
-	if (S <= 0)
-	{
-		// no tile rendered here (open sea): report the data anyway (it is below sea level)
-		S = 1;
-	}
-	const int32 I0 = int32(FMath::FloorToDouble(U / S)) * S;
-	const int32 J0 = int32(FMath::FloorToDouble(V / S)) * S;
-	const double Fx = (U - I0) / S;
-	const double Fz = (V - J0) / S;
-	const double H00 = Sample(I0, J0);
-	const double H10 = Sample(I0 + S, J0);
-	const double H01 = Sample(I0, J0 + S);
-	const double H11 = Sample(I0 + S, J0 + S);
-	// triangles (i,j)-(i,j+1)-(i+1,j) and (i+1,j)-(i,j+1)-(i+1,j+1), as in gen_terrain_tiles.py
+	if (!Loaded) { return -1000.0; }
+	const double Lx = (X + MapHalf) / LatCell, Lz = (Z + MapHalf) / LatCell;
+	if (Lx < 0.0 || Lz < 0.0 || Lx >= Lat || Lz >= Lat) { return -1000.0; }
+	const int32 Ci = FMath::Min(int32(Lx), Lat - 1), Cj = FMath::Min(int32(Lz), Lat - 1);
+	const FCell& C = Cells[Cj * Lat + Ci];
+	if (C.Step <= 0) { return -1000.0; }
+	const double Cell = Fine * C.Step;
+	const double U = FMath::Clamp((Lx - Ci) * LatCell / Cell, 0.0, double(C.N - 1));
+	const double V = FMath::Clamp((Lz - Cj) * LatCell / Cell, 0.0, double(C.N - 1));
+	const int32 I0 = FMath::Min(int32(U), C.N - 2), J0 = FMath::Min(int32(V), C.N - 2);
+	const double Fx = U - I0, Fz = V - J0;
+	auto S = [&](int32 I, int32 J) { return HMin + HRange * double(Samples[int32(C.Offset + int64(J) * C.N + I)]) / 65535.0; };
+	const double H00 = S(I0, J0), H10 = S(I0 + 1, J0), H01 = S(I0, J0 + 1), H11 = S(I0 + 1, J0 + 1);
+	// triangles (i,j)-(i,j+1)-(i+1,j) and (i+1,j)-(i,j+1)-(i+1,j+1), as in export_tiles.py
 	if (Fx + Fz <= 1.0)
 	{
 		return H00 + Fx * (H10 - H00) + Fz * (H01 - H00);

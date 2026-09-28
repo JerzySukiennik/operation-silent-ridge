@@ -1,6 +1,7 @@
 // F-35C pawn: fixed-step flight model, v1 gamepad layout via runtime Enhanced Input, chase camera (ChaseCamera.gd port), procedural VFX, jet audio (jet_audio.gd local layers), crash + respawn.
 #include "OsrJetPawn.h"
 #include "OsrTerrain.h"
+#include "OsrWorldLayout.h"
 #include "OsrPadInput.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -92,9 +93,9 @@ FQuat AOsrJetPawn::RotToUE(const FQuat& G)
 
 FVector AOsrJetPawn::SpawnPosition()
 {
-	// world.gd spawn_points()[0]: 1.5 km from the carrier towards the canyon mouth, echelon slot 0, 600 m
-	const FVector Carrier(-31000.0, 0.0, 9500.0);
-	const FVector Mouth(-17500.0, 0.0, 9800.0);
+	// world.gd spawn_points()[0]: 1.5 km from the carrier towards the canyon mouth, echelon slot 0, 600 m (layout from terrain v2)
+	const FVector Carrier = OsrWorld::Carrier;
+	const FVector Mouth = OsrWorld::Mouth;
 	FVector ToCoast = Mouth - Carrier; ToCoast.Y = 0.0; ToCoast = ToCoast.GetSafeNormal();
 	const FVector Right = FVector::CrossProduct(ToCoast, UPV).GetSafeNormal();
 	FVector P = Carrier + ToCoast * 1500.0 + Right * (0.0 * 120.0 - 180.0);
@@ -104,9 +105,7 @@ FVector AOsrJetPawn::SpawnPosition()
 
 FQuat AOsrJetPawn::SpawnRotation()
 {
-	const FVector Carrier(-31000.0, 0.0, 9500.0);
-	const FVector Mouth(-17500.0, 0.0, 9800.0);
-	FVector ToCoast = Mouth - Carrier; ToCoast.Y = 0.0;
+	FVector ToCoast = OsrWorld::Mouth - OsrWorld::Carrier; ToCoast.Y = 0.0;
 	return LookingAt(ToCoast.GetSafeNormal(), UPV);
 }
 

@@ -3,7 +3,9 @@
 #include "OsrJetPawn.h"
 #include "OsrHud.h"
 #include "OsrTerrain.h"
+#include "OsrWorldLayout.h"
 #include "EngineUtils.h"
+#include "Camera/PlayerCameraManager.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 #include "Misc/FileHelper.h"
@@ -56,10 +58,31 @@ void AOsrGameMode::StartPlay()
 void AOsrGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	FollowOcean();
 	if (!bAutotest) { return; }
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	AOsrJetPawn* Jet = PC ? Cast<AOsrJetPawn>(PC->GetPawn()) : nullptr;
 	if (Jet) { AutotestStep(Jet, DeltaSeconds); }
+}
+
+void AOsrGameMode::FollowOcean()
+{
+	// the ocean grid (dense at its centre) rides under the camera, snapped so its vertices do not swim; waves use world position
+	if (!Ocean.IsValid())
+	{
+		if (bOceanSearched) { return; }
+		bOceanSearched = true;
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		{
+			if (It->ActorHasTag(TEXT("OsrOcean"))) { Ocean = *It; break; }
+		}
+		if (!Ocean.IsValid()) { return; }
+	}
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC || !PC->PlayerCameraManager) { return; }
+	const FVector C = PC->PlayerCameraManager->GetCameraLocation();
+	const double Snap = 400.0;   // cm, multiple of the centre quad spacing (~3 m)
+	Ocean->SetActorLocation(FVector(FMath::GridSnap<double>(C.X, Snap), FMath::GridSnap<double>(C.Y, Snap), 0.0));
 }
 
 void AOsrGameMode::Shot(const FString& Name)
@@ -178,6 +201,25 @@ void AOsrGameMode::AutotestStep(AOsrJetPawn* Jet, double Dt)
 		if (T > CanyonTime)
 		{
 			ReportPerf(Jet);
+			// overview shot (Godot hero "overview_4000m"): 4 km up, south-west of the fjord mouth, looking up the canyon
+			const FVector From = OsrWorld::Mouth + FVector(-6000.0, 4000.0, 9000.0);
+			const FVector To = OsrWorld::Mouth + FVector(14000.0, 600.0, -6000.0);
+			Jet->RespawnAt(From, AOsrJetPawn::LookingAt((To - From).GetSafeNormal(), FVector(0, 1, 0)), 215.0);
+			Phase = TEXT("overview");
+			T = 0.0;
+		}
+	}
+	else if (Phase == TEXT("overview"))
+	{
+		Ap.Pitch = 0.0; Ap.Roll = 0.0; Ap.Throttle = 0.85; Ap.Afterburner = 0.0;
+		if (T > 2.5 && Shots < 50)
+		{
+			Shot(TEXT("overview"));       // captured at the end of this frame: move the jet only on a later tick
+			Shots = 50;
+		}
+		if (T > 3.0)
+		{
+			StartCanyon(Jet);
 			Phase = TEXT("crash");
 			T = 0.0;
 			CrashSeen = Jet->CrashCount;

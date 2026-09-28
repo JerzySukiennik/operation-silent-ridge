@@ -74,3 +74,52 @@ Epic, 1920x1080, TSR 67 %, warm, autotest canyon without screenshots: 43.5 fps a
 | full-fuel AB endurance at SL | 13.5 min | 13.5 min |
 
 32/32 rows identical to display precision
+
+## World v2 — procedural mountains, fjord and ocean (2026-09-28)
+
+Jurek's verdict on the stage 1/2 map ("mega unrealistic and weird": smooth vertically striped canyon walls, a comb of parallel
+coastal ridges, flat valley floors, smeared cliff textures, odd snow, flat water) led to a new offline generator,
+`scripts/terrain_v2/` (Python + C kernels via ctypes, seeded, ~25 min end to end on the Mac). Pre-v2 content is gone from the
+project (old tiles, masks, flythrough sequence); stage 2 stays playable from its packaged desktop build.
+
+**Generator** (`gen_world.py` 80 x 80 km, `gen_core.py` 40 x 30 km playable core):
+1. Tectonics at 1024^2 / 78 m: irregular coastline (warped, bays + headlands), offshore skerries, broad range uplift with
+   NNW en-echelon structural grain, lithology (plutons, soft belts) as erodibility contrasts, a strike-slip fault zone.
+2. Stream-power fluvial erosion with uplift (Braun & Willett implicit scheme, m = 0.5, n = 1) + talus limit, 320 steps to a
+   quasi steady state, refined at 2048^2. The trunk canyon is an **antecedent river**: its longitudinal profile is a base-level
+   boundary condition during these fluvial stages only (meandering 7 km / 3 km wavelengths); the valley walls, spurs and the
+   dendritic tributary network are produced by the erosion model. Flow direction is stochastic per step (breaks D8 grid lines).
+3. Glaciers at 4096^2 / 19.5 m: ice routed down the drainage with a signed mass balance (ELA ~1500 m, lower on north/lee faces)
+   so termini sit where the catchment balance reaches zero; troughs carved to a parabolic U profile scaled with ice flux
+   (tributaries shallower -> hanging valleys, heads -> cirques); the lower courses of big rivers are overdeepened below sea
+   level with a mouth sill (fjords); landlocked below-sea pockets become lakes.
+4. Post-glacial fluvial incision (gullies only, trunk rivers capped so they cannot saw a slot; no flood-fill flattening),
+   1-cell de-hatching, rocky detail on islands/coastal hills.
+5. Core at 4.88 m: dipping strata with random hard beds that pinch out (irregular cliff bands, not contour lines), two joint
+   sets, warped ridged meso relief (buttresses/couloirs 60-400 m) on steep ground, crest roughness, full-res gully erosion,
+   talus with per-bed repose angles (soil slopes smooth up to ~40 deg, hard rock to ~70 deg, scree cones), floodplains with
+   shallow channels, colluvial aprons and hummocky floors.
+6. Canyon check (`export_layout.py`): 40.4 km route = 9.8 km fjord + 30.6 km canyon, floor width at +15 m median 135 m,
+   width at 70 m AGL ~540 m, walls median ~640 m (p90 ~910 m), centreline min turn radius 860 m; carrier 47.7 km from the target.
+
+**Engine side** (`ue_10_world_v2.py`, `hlsl/terrain_v2.hlsl`, `hlsl/ocean_*.hlsl`):
+- Kept **Nanite static-mesh tiles** instead of a Landscape: a 2.5 km lattice with per-cell resolution (4.88 m within ~3 km of
+  the route, 9.77 m in the rest of the core, 19.5 m around, 39 m far; 337 tiles, 55 M triangles), crack-free edges, and a
+  C++ lookup (`OsrTerrain`, format OSR2, 50 MB) that stores the same quantised, edge-fixed samples and triangle split as the
+  meshes, so crash detection / radar altitude match the render exactly. A single Landscape cannot vary resolution, and
+  4.88 m over the whole core would cost far more than the corridor-only detail; VSM caching also favours Nanite. (No
+  Landscape build was measured on the HP - see known issues.)
+- `M_TerrainV2`: masks (snow, forest, wet, scree / beach, meadow, avalanche paths, hardness / strata phase, sky visibility)
+  at 9.77 m in the core and 19.5 m elsewhere; full 3-projection triplanar rock at 3 scales with per-scale UV rotation (no
+  fall-line streaks), strata colour bands from the same bed geometry as the carved ledges, snow on ledges from the detail
+  normal, canopy colour only where no real firs are drawn, turquoise glacial rivers/lakes, baked sky visibility + bounce.
+- Rocks: 6 CC0 Poly Haven scans (Nanite, 22 k instances) laid onto cliffs along the terrain normal, boulders on scree and
+  floors, sea-cliff pieces on the coast; re-tinted to the terrain rock and snow-dusted from the same mask (`M_RockScan`).
+- Firs (stage 1 mesh): 531 k within 1.7 km of the route, below an aspect-dependent treeline, off cliffs/scree/avalanche
+  paths/rivers; needles darkened to real conifer albedo (`MI_FirNeedlesDark`).
+- Ocean: custom instead of the Water plugin - a sinh-spaced grid (3 m quads at the centre, 100 km reach) that follows the
+  camera (`AOsrGameMode::FollowOcean`), 5 Gerstner swells from the WSW (faded in shallows), depth colour from the baked
+  bathymetry, breaking waves travelling towards the shore + surf foam from a baked shore-distance field.
+- Lighting bake (`masks_ue.py`) redone on the new heightfield (sky visibility + one bounce), Lumen stays off.
+- Volumetric cloud shadow map found to cost 8.5 ms on the RTX 3050 (the stage-2 cvars were caps above the active values):
+  now 256^2 x 12 samples over a 60 km extent = 1.4 ms.

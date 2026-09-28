@@ -10,8 +10,10 @@ game/assets/**/src/
 Niepotrzebne/work/
 UE_Test/*
 !UE_Test/README.md
+!UE_Test/CREDITS.md
 !UE_Test/scripts/
 UE_Test/scripts/__pycache__/
+UE_Test/scripts/**/__pycache__/
 !UE_Test/SilentRidgeUE/
 UE_Test/SilentRidgeUE/*
 !UE_Test/SilentRidgeUE/Source/

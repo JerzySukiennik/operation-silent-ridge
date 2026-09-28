@@ -18,6 +18,9 @@ public:
 
 private:
 	bool bFlythrough = false;
+	TWeakObjectPtr<AActor> Ocean;
+	bool bOceanSearched = false;
+	void FollowOcean();
 	bool bAutotest = false;
 	// autotest
 	TArray<FVector> Path;
