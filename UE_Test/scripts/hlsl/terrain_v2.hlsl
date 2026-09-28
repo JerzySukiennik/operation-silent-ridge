@@ -139,9 +139,9 @@ col *= 1.0 - saturate(forest * 1.4) * (1.0 - canopy) * 0.35;                    
 // ---- rivers and lakes
 // channel edge wobbles with noise (hides the flow-grid staircase); pale gravel bars border the water
 float wedge = wet + (nz3.r - 0.5) * 0.35 + (S2(Noise, wp.xz / 13.0).g - 0.5) * 0.2;
-float water = saturate(max(smoothstep(0.62, 0.8, wedge), lake)) * (1.0 - rock_w * 0.8);
-float bars = smoothstep(0.35, 0.55, wedge) * (1.0 - water) * (1.0 - rock_w) * (1.0 - sw);
-col = lerp(col, float3(0.2, 0.195, 0.185) * (0.8 + 0.4 * LUM(gv.rgb) * 2.0), bars * 0.85);
+float water = saturate(max(smoothstep(0.72, 0.9, wedge), lake)) * (1.0 - rock_w * 0.8);
+float bars = smoothstep(0.5, 0.66, wedge) * (1.0 - water) * (1.0 - rock_w) * (1.0 - sw) * smoothstep(0.35, 0.65, nz2.b);
+col = lerp(col, float3(0.11, 0.108, 0.1) * (0.8 + 0.4 * LUM(gv.rgb) * 2.0), bars * 0.7);
 col = lerp(col, water_col, water);
 col = lerp(col, col * 0.72, saturate(wet * 1.5) * (1.0 - water) * 0.6);               // damp ground along streams
 nn = normalize(lerp(nn, float3(0, 1, 0) + (nz3.xyz - 0.5) * 0.03, water));

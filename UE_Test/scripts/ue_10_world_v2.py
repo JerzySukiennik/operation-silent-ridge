@@ -105,9 +105,11 @@ if "mat" in STEPS:
     m = new_material("M_OceanV2")
     m.set_editor_property("tangent_space_normal", False)
     otex = [("WaveA", "T_water_a", 2), ("WaveB", "T_water_b", 2), ("Noise", "T_noise", 3), ("Ocean", "T_ocean_g", 1)]
-    c = custom_node(m, open(os.path.join(HLSL, "ocean_v2.hlsl")).read(), ["P", "Cam", "T"] + [t[0] for t in otex],
+    waves = open(os.path.join(HLSL, "ocean_waves.inc")).read()
+    inl = lambda f: open(os.path.join(HLSL, f)).read().replace('#include "/OSR/ocean_waves.inc"', waves)
+    c = custom_node(m, inl("ocean_v2.hlsl"), ["P", "Cam", "T"] + [t[0] for t in otex],
                     [("NormalWS", CMOT.CMOT_FLOAT3), ("Rough", CMOT.CMOT_FLOAT1), ("Spec", CMOT.CMOT_FLOAT1)])
-    v = custom_node(m, open(os.path.join(HLSL, "ocean_wpo.hlsl")).read(), ["P", "Cam", "T", "Ocean"], [], -400, 600)
+    v = custom_node(m, inl("ocean_wpo.hlsl"), ["P", "Cam", "T", "Ocean", "Noise"], [], -400, 600)
     wp = MEL.create_material_expression(m, unreal.MaterialExpressionWorldPosition, -900, -300)
     wpx = MEL.create_material_expression(m, unreal.MaterialExpressionWorldPosition, -900, 600)
     try:
@@ -121,8 +123,8 @@ if "mat" in STEPS:
     for k, (pin, asset, kind) in enumerate(otex):
         e = tex_obj(m, pin, "/Game/Textures/" + asset, -900, -100 + k * 60, stype[kind], clamp=(kind == 1))
         conn(e, "", c, pin)
-        if pin == "Ocean":
-            conn(e, "", v, "Ocean")
+        if pin in ("Ocean", "Noise"):
+            conn(e, "", v, pin)
     prop(c, "", unreal.MaterialProperty.MP_BASE_COLOR)
     prop(c, "NormalWS", unreal.MaterialProperty.MP_NORMAL)
     prop(c, "Rough", unreal.MaterialProperty.MP_ROUGHNESS)

@@ -115,11 +115,31 @@ project (old tiles, masks, flythrough sequence); stage 2 stays playable from its
   normal, canopy colour only where no real firs are drawn, turquoise glacial rivers/lakes, baked sky visibility + bounce.
 - Rocks: 6 CC0 Poly Haven scans (Nanite, 22 k instances) laid onto cliffs along the terrain normal, boulders on scree and
   floors, sea-cliff pieces on the coast; re-tinted to the terrain rock and snow-dusted from the same mask (`M_RockScan`).
-- Firs (stage 1 mesh): 531 k within 1.7 km of the route, below an aspect-dependent treeline, off cliffs/scree/avalanche
+- Firs (stage 1 mesh): 537 k within 1.7 km of the route, below an aspect-dependent treeline, off cliffs/scree/avalanche
   paths/rivers; needles darkened to real conifer albedo (`MI_FirNeedlesDark`).
-- Ocean: custom instead of the Water plugin - a sinh-spaced grid (3 m quads at the centre, 100 km reach) that follows the
-  camera (`AOsrGameMode::FollowOcean`), 5 Gerstner swells from the WSW (faded in shallows), depth colour from the baked
-  bathymetry, breaking waves travelling towards the shore + surf foam from a baked shore-distance field.
+- Ocean: custom instead of the Water plugin (a Water plugin ocean needs water zones/render targets and its own mesh system -
+  more VRAM and less control on a 4 GB GPU). A sinh-spaced grid (3 m quads at the centre, 100 km reach) follows the camera
+  (`AOsrGameMode::FollowOcean`); 8 incommensurate Gerstner swells from the SW (`hlsl/ocean_waves.inc`, shared by vertex and
+  pixel shader) modulated by a km-scale wind/slick field; 4 detail normal layers at 4.3/17.9/71/293 m with different
+  rotations/drift and distance fades (no visible tiling, far water = smooth swell + sky reflection); roughness grows with
+  distance (broad glitter path); depth colour from the baked bathymetry; swell exposure mask (calm fjords, surf on open
+  coasts); whitecaps only on steep crests in windy patches; breaking bands + surf foam from a shore-distance field.
 - Lighting bake (`masks_ue.py`) redone on the new heightfield (sky visibility + one bounce), Lumen stays off.
 - Volumetric cloud shadow map found to cost 8.5 ms on the RTX 3050 (the stage-2 cvars were caps above the active values):
   now 256^2 x 12 samples over a 60 km extent = 1.4 ms.
+
+Epic, true 1920x1080, TSR 67 %, warm cache, `-autotest -noshots` (canyon autopilot 45 s at ~70 m AGL + overview + crash):
+
+| | avg fps (canyon) | 1% low | GPU ms | VRAM peak | RAM WS peak | over-budget msg |
+|---|---|---|---|---|---|---|
+| stage 2 (old map) | 43.5 | 37.7 | 22.5 | 2.4 GB | 2.2 GB | no |
+| world v2, before the cloud-shadow fix | 40.5 | 35.6 | 24.3 | 2.57 GB | 2.33 GB | no |
+| **world v2 (final)** | **54.0** (autotest 53.4) | **45.3** (autotest 45.8) | **18.2** | **2.57 GB** | **2.33 GB** | no |
+
+Autotest: 0 false crashes over the canyon run (radar altitude 300-500 ft), deliberate crash detected, respawn OK. Packaged
+size 1.67 GB. Desktop build: `SilentRidge_UE_Map2\PLAY.cmd`; comparison: `Niepotrzebne/compare_map2/map_before_after.jpg`.
+
+Known issues / next: rivers are still drawn from a flow mask on the terrain (no separate river surface), the D8 river line
+can show a stair-step edge from low altitude; floodplain floors are a bit uniform (no braided channels / moraines yet); rock
+scans are re-tinted Namaqualand/coastal scans (fine at speed, not true gneiss); no Landscape A/B was built on the HP -
+the tile lattice was kept for variable resolution + exact collision; the stage-1 fir is the only tree species.

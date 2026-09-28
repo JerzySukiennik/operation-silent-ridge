@@ -167,7 +167,20 @@ void AOsrGameMode::AutotestStep(AOsrJetPawn* Jet, double Dt)
 			Shot(TEXT("spawn_ocean"));
 			Shots = -1;
 		}
-		if (T > 3.6)
+		if (T > 3.6 && Shots == -1)
+		{
+			// low over the open sea, heading into the sun (glitter path, swell, repetition check)
+			const FVector P = OsrWorld::Carrier + FVector(0.0, 150.0, 0.0);
+			const FVector ToSun = FVector(-0.262, 0.0, 0.720).GetSafeNormal();
+			Jet->RespawnAt(P, AOsrJetPawn::LookingAt(ToSun, FVector(0, 1, 0)), 215.0);
+			Shots = -2;
+		}
+		if (T > 5.6 && Shots == -2)
+		{
+			Shot(TEXT("ocean_sun_low"));
+			Shots = -3;
+		}
+		if (T > 6.2 && Shots == -3)
 		{
 			Shots = 0;
 			StartCanyon(Jet);
