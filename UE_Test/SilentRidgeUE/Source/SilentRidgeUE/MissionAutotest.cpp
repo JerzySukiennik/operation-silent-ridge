@@ -367,7 +367,7 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 		{
 			LookBackT += Dt;
 			Ap.bLookBack = true;
-			if (LookBackT > 0.6) { Shot(TEXT("flares")); }
+			if (LookBackT > 0.6 && SpectatorUntil < 0.0) { Shot(TEXT("flares")); }
 			if (LookBackT > 0.9) { Ap.bLookBack = false; LookBackT = -99.0; }
 		}
 		// a SAM in flight: side view of it once
@@ -375,12 +375,14 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 		{
 			for (TActorIterator<AOsrMissile> It(Ms->GetWorld()); It; ++It)
 			{
-				if (It->bAlive && !It->bIr() && It->Age > 0.2 && It->Age < 0.6)
+				if (It->bAlive && It->Kind == EOsrMissileKind::Pantsir_57E6 && It->Age > 0.1 && It->Age < 0.4 && LookBackT < 0.0)
 				{
+					// side-on from 350 m, level with the launcher: the booster plume and the smoke trail climbing away
 					const FVector Vh = It->V.GetSafeNormal();
-					const FVector Side = FVector::CrossProduct(Vh, FVector(0, 1, 0)).GetSafeNormal();
-					const FVector Cam = It->P - Side * 140.0 + FVector(0, 25.0, 0) - Flat(Vh) * 60.0;
-					Spectate(Jet, Cam, It->P, 1.6);
+					FVector Side = FVector::CrossProduct(Flat(Vh).GetSafeNormal(), FVector(0, 1, 0)).GetSafeNormal();
+					FVector Cam = It->P - Side * 350.0 - Flat(Vh).GetSafeNormal() * 120.0;
+					Cam.Y = FMath::Max(It->P.Y, Ground(Cam.X, Cam.Z) + 15.0);
+					Spectate(Jet, Cam, It->P, 2.2);
 					SpecFollow = *It;
 					bSpecFixed = true;
 					Shots.Add(TEXT("sam_pending"));
@@ -388,9 +390,9 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 				}
 			}
 		}
-		if (Shots.Contains(TEXT("sam_pending")) && SpectatorUntil > 0.0 && SpectatorUntil - Total < 0.7) { Shot(TEXT("sam_launch")); }
+		if (Shots.Contains(TEXT("sam_pending")) && SpectatorUntil > 0.0 && SpectatorUntil - Total < 0.9) { Shot(TEXT("sam_launch")); }
 		// the fighters: chase view of one
-		if (!Shots.Contains(TEXT("fighters")) && SpectatorUntil < 0.0)
+		if (!Shots.Contains(TEXT("fighters")) && SpectatorUntil < 0.0 && LookBackT < 0.0)
 		{
 			for (TActorIterator<AOsrEnemyFighter> It(Ms->GetWorld()); It; ++It)
 			{

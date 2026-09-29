@@ -193,8 +193,9 @@ void UOsrWeaponsComponent::ReadInput(double Dt)
 	const bool bSel = Act("WSelect") > 0.5 || Pd.bSquare;
 	const bool bTgp = Act("WTgp") > 0.5 || Pd.DPadUp();
 	const bool bLaser = Act("WLaser") > 0.5;
-	const bool bFlare = Act("WFlare") > 0.5 || Pd.Hat == 5 || Pd.Hat == 6 || Pd.Hat == 7;
-	const bool bChaff = Act("WChaff") > 0.5 || Pd.Hat == 1 || Pd.Hat == 2 || Pd.Hat == 3;
+	// Sony hat: 6 = left, 2 = right (the up-diagonals 7 / 1 belong to D-pad up = pod)
+	const bool bFlare = Act("WFlare") > 0.5 || Pd.Hat == 5 || Pd.Hat == 6;
+	const bool bChaff = Act("WChaff") > 0.5 || Pd.Hat == 2 || Pd.Hat == 3;
 	const bool bGearUp = !J->bGearDown;
 	const bool bTrack = Act("WTrack") > 0.5 || Pd.bL3;
 	const bool bZoom = Act("WZoom") > 0.5 || Pd.bR3;

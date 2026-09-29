@@ -111,6 +111,7 @@ void AOsrGameMode::StartCanyon(AOsrJetPawn* Jet)
 	FVector P = A;
 	P.Y = Ter.SurfaceAt(A.X, A.Z) + 90.0;
 	Jet->RespawnAt(P, AOsrJetPawn::LookingAt(D, FVector(0, 1, 0)), 215.0);
+	AOsrMissionState::MakeAirborne(Jet);   // the carrier deck ops park the jet at start: release it (M3)
 	Jet->AutopilotLever = 0.85;
 	Phase = TEXT("canyon");
 	T = 0.0;
@@ -176,6 +177,7 @@ void AOsrGameMode::AutotestStep(AOsrJetPawn* Jet, double Dt)
 			const FVector P = OsrWorld::Carrier + FVector(0.0, 150.0, 0.0);
 			const FVector ToSun = FVector(-0.262, 0.0, 0.720).GetSafeNormal();
 			Jet->RespawnAt(P, AOsrJetPawn::LookingAt(ToSun, FVector(0, 1, 0)), 215.0);
+			AOsrMissionState::MakeAirborne(Jet);   // the carrier deck ops park the jet at start: release it (M3)
 			Shots = -2;
 		}
 		if (T > 5.6 && Shots == -2)
@@ -221,6 +223,7 @@ void AOsrGameMode::AutotestStep(AOsrJetPawn* Jet, double Dt)
 			const FVector From = OsrWorld::Mouth + FVector(-6000.0, 4000.0, 9000.0);
 			const FVector To = OsrWorld::Mouth + FVector(14000.0, 600.0, -6000.0);
 			Jet->RespawnAt(From, AOsrJetPawn::LookingAt((To - From).GetSafeNormal(), FVector(0, 1, 0)), 215.0);
+			AOsrMissionState::MakeAirborne(Jet);   // the carrier deck ops park the jet at start: release it (M3)
 			Phase = TEXT("overview");
 			T = 0.0;
 		}

@@ -2,6 +2,7 @@
 // OnBolter, OnWaveOff, OnSpawnedOnDeck). Compiles without the carrier sources too (then only the F5-F7 debug keys drive them).
 #include "MissionState.h"
 #include "OsrJetPawn.h"
+#include "MissionCommon.h"
 #if __has_include("CarrierActor.h") && __has_include("CarrierJetOps.h")
 #include "CarrierActor.h"
 #include "CarrierJetOps.h"
@@ -34,6 +35,22 @@ void AOsrMissionState::MakeAirborne(AOsrJetPawn* Jet)
 	{
 		Ops->State = EDeckState::Airborne;
 		Ops->StateT = 0.0;
+	}
+#endif
+}
+
+void AOsrMissionState::FixDeckState(AOsrJetPawn* Jet)
+{
+#if OSR_HAS_CARRIER
+	UCarrierJetOps* Ops = Jet ? Jet->FindComponentByClass<UCarrierJetOps>() : nullptr;
+	const ACarrierActor* C = ACarrierActor::Get(Jet);
+	if (!Ops || !C || Ops->State == EDeckState::Airborne) { return; }
+	const FVector Ship = OsrMission::FromUE(C->Pose().PosUE);
+	if (FVector::Dist(Ship, Jet->Model.Position) > 600.0 && Jet->Model.Tas > 60.0)
+	{
+		Ops->State = EDeckState::Airborne;
+		Ops->StateT = 0.0;
+		UE_LOG(LogTemp, Display, TEXT("OSR mission: jet away from the carrier marked airborne for the deck ops"));
 	}
 #endif
 }

@@ -488,7 +488,7 @@ void AOsrMissionTarget::Tick(float DeltaSeconds)
 			Fx->Explosion(VentCentre + FVector(0, 6, 0), EOsrBlast::Huge, FVector(0, 1, 0));
 			for (int32 K = 0; K < 14; ++K)
 			{
-				Fx->Puff(VentCentre, FVector(R.FRandRange(-8, 8), R.FRandRange(60, 140), R.FRandRange(-8, 8)), R.FRandRange(1.2, 2.2), 4.0, 22.0, FLinearColor(1.0f, 0.5f, 0.15f) * 4.0f, 1.0, true, 0.8, 0.0);
+				Fx->Puff(VentCentre, FVector(R.FRandRange(-8, 8), R.FRandRange(60, 140), R.FRandRange(-8, 8)), R.FRandRange(1.2, 2.2), 4.0, 22.0, FLinearColor(1.0f, 0.42f, 0.1f) * 2.0f, 1.0, true, 0.8, 0.0);
 			}
 		}
 		else if (W == 1 || W == 2)
@@ -501,7 +501,7 @@ void AOsrMissionTarget::Tick(float DeltaSeconds)
 				for (int32 K = 0; K < 16; ++K)
 				{
 					const FVector V = (Out * R.FRandRange(60, 160)) + FVector(R.FRandRange(-12, 12), R.FRandRange(-4, 20), R.FRandRange(-12, 12));
-					Fx->Puff(Mo, V, R.FRandRange(1.0, 2.0), 3.0, 18.0, FLinearColor(1.0f, 0.5f, 0.15f) * 4.0f, 1.0, true, 1.6, 2.0);
+					Fx->Puff(Mo, V, R.FRandRange(1.0, 2.0), 3.0, 18.0, FLinearColor(1.0f, 0.42f, 0.1f) * 2.0f, 1.0, true, 1.6, 2.0);
 				}
 				if (W == 1) { Doors->SetVisibility(false); }
 			}
@@ -531,6 +531,6 @@ void AOsrMissionTarget::Tick(float DeltaSeconds)
 				Fx->Puff(PortalMouths[I] + PortalOut[I] * 6.0, PortalOut[I] * 8.0 + FVector(0, 10, 0), 12.0, 5.0, 40.0, FLinearColor(G, G, G), 0.6 * Fade, false, 0.2, 1.5);
 			}
 		}
-		if (T < 20.0) { Fx->Puff(VentCentre + FVector(0, 2, 0), FVector(0, R.FRandRange(20, 40), 0), 0.8, 3.0, 9.0, FLinearColor(1.0f, 0.45f, 0.12f) * 4.0f, 0.9 * (1.0 - T / 20.0), true, 0.5, 0.0); }
+		if (T < 20.0) { Fx->Puff(VentCentre + FVector(0, 2, 0), FVector(0, R.FRandRange(20, 40), 0), 0.8, 3.0, 9.0, FLinearColor(1.0f, 0.4f, 0.1f) * 2.0f, 0.9 * (1.0 - T / 20.0), true, 0.5, 0.0); }
 	}
 }

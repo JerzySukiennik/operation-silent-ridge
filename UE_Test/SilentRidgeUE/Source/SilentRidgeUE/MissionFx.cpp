@@ -155,11 +155,11 @@ void AOsrMissionFx::Explosion(const FVector& P, EOsrBlast Kind, const FVector& N
 	{
 		const FVector D = (Up * 0.8 + FVector(Rng.FRandRange(-1, 1), Rng.FRandRange(-0.3, 1), Rng.FRandRange(-1, 1))).GetSafeNormal();
 		const double Sp = Rng.FRandRange(8.0, 30.0) * Scale;
-		const FLinearColor C = FMath::Lerp(FLinearColor(1.0f, 0.62f, 0.25f), FLinearColor(1.0f, 0.35f, 0.08f), Rng.FRand());
-		Puff(P + D * 2.0 * Scale, D * Sp, Rng.FRandRange(0.7, 1.4) * FMath::Sqrt(Scale), 5.0 * Scale, Rng.FRandRange(14.0, 24.0) * Scale, C * 4.0f, 0.9, true, 2.5, 4.0);
+		const FLinearColor C = FMath::Lerp(FLinearColor(1.0f, 0.45f, 0.12f), FLinearColor(0.9f, 0.22f, 0.04f), Rng.FRand());
+		Puff(P + D * 2.0 * Scale, D * Sp, Rng.FRandRange(0.7, 1.4) * FMath::Sqrt(Scale), 5.0 * Scale, Rng.FRandRange(14.0, 24.0) * Scale, C * 1.8f, 0.9, true, 2.5, 4.0);
 	}
 	// bright core flash
-	Puff(P, FVector::ZeroVector, 0.18, 10.0 * Scale, 30.0 * Scale, FLinearColor(1.0f, 0.85f, 0.6f) * 10.0f, 1.0, true, 0.0);
+	Puff(P, FVector::ZeroVector, 0.18, 10.0 * Scale, 30.0 * Scale, FLinearColor(1.0f, 0.7f, 0.4f) * 4.0f, 1.0, true, 0.0);
 	for (int32 K = 0; K < Smoke; ++K)
 	{
 		const FVector D = (Up + FVector(Rng.FRandRange(-0.7, 0.7), Rng.FRandRange(0.0, 0.8), Rng.FRandRange(-0.7, 0.7))).GetSafeNormal();
@@ -180,7 +180,7 @@ void AOsrMissionFx::Explosion(const FVector& P, EOsrBlast Kind, const FVector& N
 	for (int32 K = 0; K < Sparks; ++K)
 	{
 		const FVector D = (Up * 0.6 + FVector(Rng.FRandRange(-1, 1), Rng.FRandRange(-0.2, 1), Rng.FRandRange(-1, 1))).GetSafeNormal();
-		Puff(P, D * Rng.FRandRange(40.0, 110.0) * FMath::Sqrt(Scale), Rng.FRandRange(0.6, 1.6), 0.9 * Scale, 0.3, FLinearColor(1.0f, 0.55f, 0.2f) * 8.0f, 1.0, true, 0.4, -9.0);
+		Puff(P, D * Rng.FRandRange(40.0, 110.0) * FMath::Sqrt(Scale), Rng.FRandRange(0.6, 1.6), 0.9 * Scale, 0.3, FLinearColor(1.0f, 0.5f, 0.15f) * 4.0f, 1.0, true, 0.4, -9.0);
 	}
 	Flash(P + Up * 6.0, 4.0e6 * Scale * Scale, 0.35 + 0.2 * Scale, FLinearColor(1.0f, 0.6f, 0.3f));
 	SoundAt(Snd, P, Kind == EOsrBlast::Small ? -6.0 : 2.0);

@@ -370,6 +370,7 @@ void AOsrMissionState::Tick(float DeltaSeconds)
 			UOsrWeaponsComponent* W = NewObject<UOsrWeaponsComponent>(J, TEXT("OsrWeapons"));
 			W->RegisterComponent();
 		}
+		FixDeckState(J);
 		// crashes not caused by a weapon (terrain) also end the sortie (manned jets only)
 		if (!J->IsPlayerControlled() && !J->bAutopilot) { GCrashSeen.Add(J, J->CrashCount); continue; }
 		const int32* Seen = GCrashSeen.Find(J);
