@@ -561,7 +561,7 @@ void UCarrierJetOps::DeckStep(double Dt)
 		{
 			Carrier->SetWirePull(-1, FVector::ZeroVector);
 			Wire = -1;
-			if (bManned && In.Throttle > 0.25) { SetState(EDeckState::Taxi); }
+			if (bManned && In.Throttle > 0.25 && HookAngle < 3.0 && StateT > 1.0) { SetState(EDeckState::Taxi); }
 		}
 		break;
 	default:

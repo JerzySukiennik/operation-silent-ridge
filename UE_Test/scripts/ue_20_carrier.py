@@ -194,8 +194,8 @@ float lat = abs(uv.x - 0.5) * 2.0;
 float edge = 1.0 - smoothstep(0.35 + Spread * 0.4, 1.0, lat);
 float lon = 1.0 - smoothstep(0.75, 1.0, abs(uv.y - 0.5) * 2.0);
 float core = lerp(0.55, 1.2, 1.0 - lat);
-float foam = saturate((n - 0.42) * 2.6 + 0.18 * Strength) * Strength * core * edge * lon;
-Op = saturate(foam * 0.85);
+float foam = saturate(0.45 * Strength + (n - 0.3) * 2.2) * core * edge * lon;
+Op = saturate(foam * 0.8);
 return float3(0.82, 0.86, 0.88);
 """, ["WP", "DUV", "T", "Strength", "Spread"], [("Op", CMOT.CMOT_FLOAT1)])
     wp = MEL.create_material_expression(m, unreal.MaterialExpressionWorldPosition, -900, -200)

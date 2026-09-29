@@ -419,12 +419,12 @@ void UCarrierSubsystem::Autotest(double Dt)
 			if (Ops->StateT > 1.6)
 			{
 				TrapText = FString::Printf(TEXT("%s comment=\"%s\""), *Ops->ResultText, *Ops->Lso.LastComment);
-				// second pass: hook up on purpose -> LSO "hook down" + wave-off, touch-and-go = bolter
-				Ops->PlaceOnApproach(2300.0, 140.0 * Sub_KT);
+				// hook up, climb out, walk back in (pawn switching on the moving deck)
 				Ops->bHookDown = false;
-				++Approaches;
-				LatPrev = 0.0;
-				Phase = TEXT("bolter");
+				Jet->AutopilotInput.Throttle = 0.0;
+				Jet->AutopilotInput.bBrake = true;
+				Jet->Controls.SetLever(0.0);
+				Phase = TEXT("exit");
 				T = 0.0;
 			}
 		}
@@ -432,6 +432,53 @@ void UCarrierSubsystem::Autotest(double Dt)
 		{
 			UE_LOG(LogTemp, Display, TEXT("REPORT carrier_approach_fail alive=%s state=%s t=%.0f"), Jet->bAlive ? TEXT("true") : TEXT("false"), *Ops->StateName(), T);
 			Phase = TEXT("done");
+			T = 0.0;
+		}
+	}
+	else if (Phase == TEXT("exit"))
+	{
+		FOsrControlInput& Ap = Jet->AutopilotInput;
+		Ap.Throttle = 0.0; Ap.Afterburner = 0.0; Ap.Yaw = 0.0; Ap.bBrake = true;
+		if (T > 1.5 && PC->GetPawn() == Jet && Ops->CanExit()) { Jet->bAutopilot = false; ExitJet(); }
+		if (Foot && PC->GetPawn() == Foot)
+		{
+			const FVector L = Carrier->UEToLocal(Foot->GetActorLocation());
+			UE_LOG(LogTemp, Display, TEXT("REPORT carrier_climb_out ok=true t=%.1f local=(%.1f, %.1f, %.2f) jet_state=%s"), T, L.X, L.Y, L.Z, *Ops->StateName());
+			Phase = TEXT("reenter");
+			T = 0.0;
+		}
+		if (T > 12.0) { UE_LOG(LogTemp, Display, TEXT("REPORT carrier_climb_out ok=false state=%s"), *Ops->StateName()); Phase = TEXT("bolter_setup"); T = 0.0; }
+	}
+	else if (Phase == TEXT("reenter"))
+	{
+		if (T > 1.5) { Shot(TEXT("climb_out"), 16); }
+		if (Foot && T > 2.0)
+		{
+			const FVector2D Lad = Ops->LadderPoint();
+			FVector To = Carrier->LocalToUE(FVector(Lad.X, Lad.Y, CarrierLayout::DeckZ + 0.9)) - Foot->GetActorLocation(); To.Z = 0.0;
+			Foot->bAutoDrive = true;
+			Foot->AutoMoveWorld = To.Size() > 150.0 ? To.GetSafeNormal() : FVector::ZeroVector;
+			Foot->bAutoInteract = To.Size() < 300.0 && FMath::Fmod(T, 0.5) < 0.25;
+		}
+		if (PC->GetPawn() == Jet && T > 2.5)
+		{
+			UE_LOG(LogTemp, Display, TEXT("REPORT carrier_reboard ok=true t=%.1f"), T);
+			Phase = TEXT("bolter_setup");
+			T = 0.0;
+		}
+		if (T > 25.0) { UE_LOG(LogTemp, Display, TEXT("REPORT carrier_reboard ok=false")); EnterJet(); Phase = TEXT("bolter_setup"); T = 0.0; }
+	}
+	else if (Phase == TEXT("bolter_setup"))
+	{
+		if (T > 1.0 && PC->GetPawn() == Jet)
+		{
+			// second pass: hook up on purpose -> LSO "hook down" + wave-off, touch-and-go = bolter
+			Jet->bAutopilot = true;
+			Ops->PlaceOnApproach(2300.0, 140.0 * Sub_KT);
+			Ops->bHookDown = false;
+			++Approaches;
+			LatPrev = 0.0;
+			Phase = TEXT("bolter");
 			T = 0.0;
 		}
 	}
