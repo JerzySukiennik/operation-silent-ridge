@@ -31,6 +31,23 @@ automatic, the JBD raises, go to MIL (RT to 100 %), salute, the shooter fires th
 Landing: gear + hook down, fly the 3.5 deg glideslope (meatball repeater on the right, LSO calls on the radio),
 optionally D-pad up for DFP. Wires 1-4, target the 3-wire. Missing all wires = bolter, go around at MIL.
 
-Crashing respawns you on foot on the carrier deck after 4 s.
+MISSION + WEAPONS (gear UP = master arm; with the gear down these buttons belong to the carrier ops above)
+  A / Cross       fire: gun (hold) / release a laser-guided bomb (press)                   (keyboard Space)
+  X / Square      weapon select GUN (220 rds) / LGB (2)                                      (keyboard Tab)
+  D-pad up        targeting pod view on / off; HOLD 0.6 s = laser arm                         (keyboard T / R)
+    in the pod:   right stick slew (IJKL), L3 point track - snaps onto the vent shaft (X), R3 zoom (Z)
+  D-pad left      flares (hold = flare + chaff program)                                      (keyboard 1)
+  D-pad right     chaff                                                                       (keyboard 2)
+  How to hit the vent: pod view, put the cross on the terrace on the spur east of the tunnel portals, L3 = POINT
+  VENT SHAFT, laser arm (or rely on AUTO LASE in the last 14 s), release on "IN RNG" in level flight, then fly a
+  beam (target 90 deg off the nose, wings level) - a steep bank towards it puts it above the wing and masks the pod.
+  HUD: RWR scope bottom left (SR search radar, 21 S-400, 22 Pantsir, 15 Tor, 57 Su-57; diamond = lock, circle =
+  launch), MISSILE LAUNCH / MISSILE (DAS) warnings with an arrow, weapons block bottom right, TD box = pod point.
+  Fly the canyon LOW: the valley radars see you by line of sight over the real terrain.
+  Debug keys: F5 catapult launch, F6 trap (OK, 3-wire), F7 bolter, F8 reset mission, F9 jump to the canyon,
+  F10 jump to the target area.
+
+Crashing or being shot down respawns you on foot on the carrier deck after 4 s; the mission continues
+(the target stays destroyed). Trap after destroying the target = MISSION SUCCESS with stats.
 
 If the pad seems wrong: start PLAY - input debug.cmd and send a screenshot of the white INPUT DEBUG box.
