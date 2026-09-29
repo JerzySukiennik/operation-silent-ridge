@@ -17,6 +17,14 @@ from Godot 4.6 to **UE 5.7.4**. Visual minimum = **Epic look**. The Godot v1 sta
   (plain `schtasks` tasks don't start on battery and die when unplugged).
 - Judge a preset only with a **warm shader/PSO cache** (first run at a new preset compiles).
 
+## Iteration loop (2026-09-29)
+
+`UE_Test/scripts/ship.sh` = one-liner from a Mac change to a launch-tested build in `C:\Users\jurek\Desktop\SilentRidge`
+(incremental MD5-manifest sync over SSH, then C++-only exe swap / config repak / iterative cook as needed).
+Measured: C++ change 350 s -> 67 s, config 253 s -> 58 s, content (materials) 267 s -> 101 s.
+`UE_Test/scripts/quickrun.sh` runs the desktop build with args and pulls screenshots/perf. Details: `UE_Test/README.md`
+("Fast iteration").
+
 ## Stages
 
 1. **World in budget (Epic look).** Terrain textures/masks made streamable (or RVT), bake

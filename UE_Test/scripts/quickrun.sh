@@ -16,4 +16,4 @@ grep REPORT "$L/game.log" 2>/dev/null | sed 's/.*REPORT /  /' | grep -v "shot ca
 python3 "$D/scripts/analyze_run.py" "$L" 2>/dev/null | python3 -c "
 import json,sys; d=json.load(sys.stdin); a=d.get('all',{})
 print('  perf all: %s fps avg, 1%% low %s, GPU %s ms | VRAM peak %s MB, RAM peak %s MB' % (a.get('avg_fps'), a.get('low1_fps'), a.get('gpu_ms_avg'), d.get('vram_used_peak_mb'), d.get('ram_ws_peak_mb')))" 2>/dev/null
-echo "  -> $L ($(ls "$L"/*.png 2>/dev/null | wc -l | tr -d ' ') screenshots)"
+echo "  -> $L ($(ls "$L" | grep -c "\.png$") screenshots)"

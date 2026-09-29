@@ -143,3 +143,47 @@ Known issues / next: rivers are still drawn from a flow mask on the terrain (no 
 can show a stair-step edge from low altitude; floodplain floors are a bit uniform (no braided channels / moraines yet); rock
 scans are re-tinted Namaqualand/coastal scans (fine at speed, not true gneiss); no Landscape A/B was built on the HP -
 the tile lattice was kept for variable resolution + exact collision; the stage-1 fir is the only tree species.
+
+## Fast iteration (2026-09-29)
+
+One command from a change on the Mac to a launch-tested build on the HP desktop, in a stable folder
+`C:\Users\jurek\Desktop\SilentRidge\PLAY.cmd` (the older `SilentRidge_UE_*` folders are left as they are):
+
+    UE_Test/scripts/ship.sh                  # sync -> build what's needed -> deploy -> launch test, prints phase times
+    UE_Test/scripts/ship.sh --no-launch      # skip the ~20 s LoadMap test
+    UE_Test/scripts/ship.sh --mode cook      # force a mode: cpp | stage | cook | deploy
+    UE_Test/scripts/ship.sh --rehash-remote  # rebuild the HP manifest from its files (first run, or after editing files on the HP)
+    UE_Test/scripts/quickrun.sh [tag] [game args]   # run the desktop build (default "-autotest"; "-autotest -noshots" for perf),
+                                                    # pulls log/CSV/screenshots to Niepotrzebne/runs/<tag>, prints REPORT + perf
+
+How it works:
+- **Incremental sync** (`scripts/hp_sync.py`, SSH/SCP only - no SMB share, no firewall changes): MD5 manifest of
+  `Content/`, `Config/`, `Source/` (+ the Game-only `.uproject`) on both sides; only new/changed files are tarred and sent,
+  removed ones deleted, the new manifest stored on the HP. Local hashes are cached by size+mtime (0.2 s for 844 files).
+- **Build mode from what changed** (`scripts/hp/build.cmd`, run as a battery-safe S4U scheduled task):
+  - `cpp` (only `Source/`): UBT compile of the Game target, the new exe is copied into the staged build - no cook, no pak.
+  - `stage` (`Config/` touched, no content): compile + restage/repak with `-skipcook` (Config lives in the pak).
+  - `cook` (`Content/` touched): compile + **iterative cook** (`-iterate` = legacy iterative: keeps unchanged packages;
+    a change of global cook settings still triggers a full recook automatically) + stage + pak/iostore.
+  - no `-archive` copy: the staged build (`proj\SilentRidgeUE\Saved\StagedBuilds\Windows`) is robocopied (changed files
+    only) into `Desktop\SilentRidge`, then `PLAY.cmd` is started in Jurek's session, LoadMap awaited, window closed, `Saved` wiped.
+- The tool upload runs in parallel with the Mac-side hashing; everything holds the shared HP lock.
+
+Measured on the HP (Wi-Fi LAN), change on the Mac -> launch-tested build on the desktop:
+
+| change | before (`hp_package.sh` + `hp_deploy_desktop.sh`) | after (`ship.sh`) | after, `--no-launch` |
+|---|---|---|---|
+| C++ (one .cpp) | 350 s (tar 23 + transfer ~100 + BuildCookRun 186 + deploy/launch 34) | **67 s** (sync 5, UBT 41, deploy 2, launch 19) | ~48 s |
+| config (one .ini value) | 253 s | **58 s** (sync 3, repak 32, deploy 2, launch 20) | 27 s |
+| content (3 materials + 16 instances, 44 MB) | 267 s (full recook of 900 packages) | **101 s** (sync 6, cook 72: kept 544 / recooked 356, launch 21) | ~80 s |
+| nothing changed | - | 28 s (sync 9 incl. first remote rehash, launch 17) | - |
+
+Limitations:
+- `cpp` mode swaps only the exe: fine while cooked content does not serialize our classes (true today - the game mode comes
+  from config, the pawn is spawned). If a UCLASS/UPROPERTY layout used by assets changes, run `ship.sh --mode cook`.
+- `stage` mode assumes the ini change does not alter cooked data; renderer/shader-format settings need `--mode cook`.
+- Big content changes are bound by the Wi-Fi transfer (~15 MB/s) and the cook (e.g. regenerating all terrain tiles:
+  ~600 MB, estimated 3-5 min). Content generation itself still runs in the Mac editor (`ue_run.sh ...`), not counted above.
+- The HP manifest assumes nobody edits `C:\Users\jurek\osr_ue\proj` by hand (else `--rehash-remote`). If the HP changes
+  network, fix `HostName` in `~/.ssh/config` (ship.sh fails fast with "HP unreachable").
+- The old full pipeline (`hp_package.sh`, `hp_deploy_desktop.sh`, `hp_run_ue.sh`) still works for clean full builds.
