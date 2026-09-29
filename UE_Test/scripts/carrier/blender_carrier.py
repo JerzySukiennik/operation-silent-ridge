@@ -362,6 +362,27 @@ for i in range(len(dense)):
     # rail posts every segment
     cw.box(A1[0] - 0.05, A1[0] + 0.05, A1[1] - 0.05, A1[1] + 0.05, zc, zc + 1.1, M_DARK)
 
+# ---------------------------------------------------------------- hull dressing (portholes, vents, fantail recess, anchors)
+hd = Builder("CarrierHullDressing")
+for side in (1, -1):
+    for zz, step, w, h in [(4.2, 5.5, 0.45, 0.45), (6.2, 5.5, 0.45, 0.45), (12.3, 9.0, 2.4, 1.2)]:
+        x = -150.0
+        while x < 128.0:
+            if not (side > 0 and door["x0"] - 2 < x < door["x1"] + 2):
+                yy = hull_y(x, zz, side)
+                o = 0.03 * side
+                hd.box(x - w / 2, x + w / 2, min(yy, yy + o), max(yy, yy + o), zz, zz + h, M_DARK, top=False)
+            x += step
+# fantail: dark open recess under the round-down, with a deck edge beam
+hd.box(-163.2, -162.9, -13.0, 15.0, 8.8, 16.6, M_DARK, top=False)
+hd.box(-163.3, -162.9, -13.0, 15.0, 16.6, 17.0, M_HULL, top=False)
+# anchors + hawse pipes at the bow, both sides
+for side in (1, -1):
+    ax_ = 138.0
+    yy = hull_y(ax_, 11.0, side)
+    hd.cyl(ax_, yy + 0.2 * side, 9.8, 12.2, 0.9, M_DARK, 12, 0.9)
+    hd.box(ax_ - 0.6, ax_ + 0.6, min(yy, yy + 0.6 * side), max(yy, yy + 0.6 * side), 7.5, 10.2, M_DARK)
+
 # ---------------------------------------------------------------- island (stepped superstructure, bridge + pri-fly glass, catwalks, mast, radars)
 isl = Builder("CarrierIsland")
 M_ISL = mat("M_Island", (0.14, 0.155, 0.165), 0.55)
@@ -591,7 +612,7 @@ for sgn in (-1, 1):
     hm_.cyl(0.0, sgn * 0.118, -0.03, -0.029, 0.05, M_SHELL, 10) if False else None
     hm_.box(-0.04, 0.04, sgn * 0.112 - 0.018, sgn * 0.112 + 0.018, -0.07, 0.01, M_SHELL, top=True, bottom=True)
 
-objs = {b.name: b.finish() for b in [hb, db, dk, sk, cw, isl, fit, hg, ev, jb, co, hm_]}
+objs = {b.name: b.finish() for b in [hb, hd, db, dk, sk, cw, isl, fit, hg, ev, jb, co, hm_]}
 print("INFO objects", {k: len(v.data.polygons) for k, v in objs.items()})
 tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs.values())
 print("INFO tris", tris)
@@ -627,7 +648,7 @@ def export(names, fname):
     j.hide_render = True
 
 
-export(["CarrierHull", "CarrierDeckSides", "CarrierSponsons", "CarrierCatwalks", "CarrierIsland", "CarrierFittings"], "SM_CarrierHull.glb")
+export(["CarrierHull", "CarrierHullDressing", "CarrierDeckSides", "CarrierSponsons", "CarrierCatwalks", "CarrierIsland", "CarrierFittings"], "SM_CarrierHull.glb")
 export(["CarrierDeck"], "SM_CarrierDeck.glb")
 export(["CarrierHangar"], "SM_CarrierHangar.glb")
 export(["CarrierElevator"], "SM_CarrierElevator.glb")

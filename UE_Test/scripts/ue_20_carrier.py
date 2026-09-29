@@ -186,15 +186,16 @@ return col;
     c = custom_node(m, """
 float2 q = WP.xy / 100.0;
 float n = 0;
-float a = 1, f = 0.09, tot = 0;
+float a = 1, f = 0.22, tot = 0;
 for (int i = 0; i < 4; i++) { float2 pp = q * f + float2(T * 0.05 * (i + 1), -T * 0.03 * i); n += a * (sin(pp.x * 1.7 + sin(pp.y * 1.3)) * 0.5 + 0.5) * (sin(pp.y * 2.1 + sin(pp.x * 0.9 + 1.7)) * 0.5 + 0.5); tot += a; a *= 0.55; f *= 2.3; }
 n /= tot;
 float2 uv = DUV;
 float lat = abs(uv.x - 0.5) * 2.0;
 float edge = 1.0 - smoothstep(0.35 + Spread * 0.4, 1.0, lat);
 float lon = 1.0 - smoothstep(0.75, 1.0, abs(uv.y - 0.5) * 2.0);
-float foam = saturate((n - (0.62 - Strength * 0.35)) * 3.0) * edge * lon;
-Op = saturate(foam * Strength * 1.6);
+float core = lerp(0.55, 1.2, 1.0 - lat);
+float foam = saturate((n - 0.42) * 2.6 + 0.18 * Strength) * Strength * core * edge * lon;
+Op = saturate(foam * 0.85);
 return float3(0.82, 0.86, 0.88);
 """, ["WP", "DUV", "T", "Strength", "Spread"], [("Op", CMOT.CMOT_FLOAT1)])
     wp = MEL.create_material_expression(m, unreal.MaterialExpressionWorldPosition, -900, -200)
