@@ -63,11 +63,18 @@ void UCarrierSubsystem::SetupDeck()
 	Jet = PC ? Cast<AOsrJetPawn>(PC->GetPawn()) : nullptr;
 	if (!Jet || !Carrier) { return; }
 	bSetupDone = true;
+	// plain -autotest (canyon regression) runs the stage-2 jet untouched: no carrier ops on the jet
+	if (FParse::Param(FCommandLine::Get(), TEXT("autotest"))) { return; }
 	Ops = NewObject<UCarrierJetOps>(Jet, TEXT("CarrierOps"));
 	Ops->RegisterComponent();
 	Ops->Setup(Jet, Carrier);
+	if (!bDeckMode)
+	{
+		Ops->State = EDeckState::Airborne;   // air start (other autotests, -airstart): carrier ops available for the recovery
+		Ops->bManned = true;
+		return;
+	}
 	Ops->ParkAt(FVector2D(CarrierLayout::PlayerJet.X, CarrierLayout::PlayerJet.Y), CarrierLayout::PlayerJet.Z);
-	if (!bDeckMode) { return; }
 	Foot = SpawnWalker(FVector(CarrierLayout::Spawn.X, CarrierLayout::Spawn.Y, CarrierLayout::DeckZ + 1.0), 20.0);
 	if (Foot)
 	{

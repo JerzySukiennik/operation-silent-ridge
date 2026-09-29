@@ -308,11 +308,16 @@ bool UCarrierJetOps::SuppressImpactWarning() const
 
 bool UCarrierJetOps::HandleRespawn()
 {
-	if (UCarrierSubsystem* S = GetWorld()->GetSubsystem<UCarrierSubsystem>())
+	UCarrierSubsystem* S = GetWorld()->GetSubsystem<UCarrierSubsystem>();
+	if (S && S->IsDeckMode())
 	{
 		S->RespawnOnDeck();
 		return true;
 	}
+	// air start: the stock respawn, carrier ops back to airborne
+	State = EDeckState::Airborne;
+	bDfp = false;
+	Lso.Reset();
 	return false;
 }
 
