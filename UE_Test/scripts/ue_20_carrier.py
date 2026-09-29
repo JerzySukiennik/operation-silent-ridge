@@ -82,6 +82,13 @@ return col;
     m.set_editor_property("used_with_nanite", True)
     MEL.recompile_material(m); EAL.save_loaded_asset(m)
 
+    # island: same haze grey family, a touch darker/bluer (instance of the hull material)
+    mi_path = MAT + "/MI_CarrierIsland"
+    mi = unreal.load_asset(mi_path) if EAL.does_asset_exist(mi_path) else AT.create_asset("MI_CarrierIsland", MAT, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+    MEL.set_material_instance_parent(mi, unreal.load_asset(MAT + "/M_CarrierHull"))
+    MEL.set_material_instance_vector_parameter_value(mi, "Tint", unreal.LinearColor(0.13, 0.145, 0.16, 1))
+    EAL.save_loaded_asset(mi)
+
     # flight deck: markings texture (A = paint), tiling nonskid normal, rougher nonskid vs smoother paint
     m = new_material("M_CarrierDeck", MAT)
     m.set_editor_property("two_sided", True)
@@ -201,7 +208,7 @@ return float3(0.82, 0.86, 0.88);
     log("M3 MAT DONE")
 
 # ---------------------------------------------------------------- carrier meshes
-MAP = {"M_Hull": "M_CarrierHull", "M_Deck": "M_CarrierDeck", "M_Dark": "M_CarrierDark", "M_Glass": "M_CarrierGlass", "M_Net": "M_CarrierNet",
+MAP = {"M_Hull": "M_CarrierHull", "M_Island": "MI_CarrierIsland", "M_Deck": "M_CarrierDeck", "M_Dark": "M_CarrierDark", "M_Glass": "M_CarrierGlass", "M_Net": "M_CarrierNet",
        "M_Hangar": "M_CarrierHangar", "M_HangarFloor": "M_CarrierHangarFloor", "M_Lamp": "M_CarrierLight", "M_Jbd": "M_CarrierJbd",
        "M_Yellow": "M_CarrierDeck", "M_HelmetShell": "M_HelmetShell", "M_Visor": "M_Visor", "M_Hook": "M_Hook"}
 
@@ -225,6 +232,7 @@ if "carrier" in STEPS:
             bs = sm.get_editor_property("body_setup")
             if bs:
                 bs.set_editor_property("collision_trace_flag", unreal.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
+                bs.set_editor_property("double_sided_geometry", True)   # the builder's mirrored winding: collide from both sides
         else:
             nanite(sm, nan)
             bs = sm.get_editor_property("body_setup")

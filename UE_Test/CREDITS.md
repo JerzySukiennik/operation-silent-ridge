@@ -33,3 +33,6 @@ attribution required, listed for provenance. Fetched by `scripts/terrain_v2/fetc
   the generated audio is not part of the tool) using the voices `en_US-norman-medium` (dataset: LibriVox recordings, public domain; trained from scratch) and
   `en_US-ljspeech-medium` (LJ Speech dataset, public domain), https://huggingface.co/rhasspy/piper-voices; radio filter own work
   (`scripts/carrier/gen_radio.py`).
+- Catapult launch (`cat_shot`) and arrested landing (`wire_trap`) sounds → cut from the DVIDS video "Abraham Lincoln conducts
+  flight operations" (F-35C launches and traps on USS Abraham Lincoln, 2 Feb 2022), U.S. Navy video by MC3 Michael Singley,
+  https://www.dvidshub.net/video/830382, public domain (U.S. government work).

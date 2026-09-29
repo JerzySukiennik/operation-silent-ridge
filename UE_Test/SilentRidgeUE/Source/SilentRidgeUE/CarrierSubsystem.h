@@ -54,7 +54,7 @@ private:
 	int32 Shots = 0, Approaches = 0;
 	FString TrapText;
 	TArray<float> FramesDeck, FramesApproach;
-	bool bShot[16] = {};
+	bool bShot[20] = {};
 	void Autotest(double Dt);
 	void Shot(const FString& Name, int32 Slot);
 	void AutoTaxi();

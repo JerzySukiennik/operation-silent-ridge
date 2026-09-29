@@ -362,57 +362,105 @@ for i in range(len(dense)):
     # rail posts every segment
     cw.box(A1[0] - 0.05, A1[0] + 0.05, A1[1] - 0.05, A1[1] + 0.05, zc, zc + 1.1, M_DARK)
 
-# ---------------------------------------------------------------- island
+# ---------------------------------------------------------------- island (stepped superstructure, bridge + pri-fly glass, catwalks, mast, radars)
 isl = Builder("CarrierIsland")
+M_ISL = mat("M_Island", (0.14, 0.155, 0.165), 0.55)
 I = L.ISLAND
 x0, x1, y0, y1 = I["x0"], I["x1"], I["y0"], I["y1"]
-isl.box(x0, x1, y0, y1, DZ, DZ + 7.4, M_HULL)                       # 01-03 levels
-isl.box(x0 + 1.0, x1 - 0.5, y0 + 0.4, y1 - 0.3, DZ + 7.4, DZ + 12.0, M_HULL)
-isl.box(x0 + 2.5, x1 - 2.0, y0 + 0.8, y1 - 0.6, DZ + 12.0, DZ + 15.4, M_HULL)
-# navigation bridge (fwd) with slanted windows and bridge wings
-bx0, bx1 = x1 - 11.0, x1 - 0.8
-isl.box(bx0, bx1, y0 - 0.4, y1 + 0.4, DZ + 15.4, DZ + 18.4, M_HULL)
-isl.quad((bx1, y0 - 0.4, DZ + 16.2), (bx1 + 0.9, y0 - 0.4, DZ + 17.9), (bx1 + 0.9, y1 + 0.4, DZ + 17.9), (bx1, y1 + 0.4, DZ + 16.2), M_GLASS)
-isl.box(bx0 + 2, bx1 - 1, y0 - 3.5, y0 - 0.4, DZ + 15.9, DZ + 16.3, M_HULL)      # port bridge wing
-isl.box(bx0 + 2, bx1 - 1, y1 + 0.4, y1 + 3.0, DZ + 15.9, DZ + 16.3, M_HULL)
-# primary flight control (aft, overhanging the deck side) with a glass band
-px0, px1 = x0 + 1.5, x0 + 12.0
-isl.box(px0, px1, y0 - 1.6, y1 - 0.6, DZ + 15.4, DZ + 19.0, M_HULL)
-isl.box(px0 - 0.02, px1 + 0.02, y0 - 1.62, y0 - 1.5, DZ + 16.4, DZ + 18.2, M_GLASS)
-isl.box(px0 - 0.1, px0, y0 - 1.6, y1 - 0.8, DZ + 16.4, DZ + 18.2, M_GLASS)
-# upper decks + mast
-isl.box(x0 + 4.0, x1 - 4.0, y0 + 1.5, y1 - 1.2, DZ + 19.0, DZ + 22.0, M_HULL)
-isl.box(x0 + 8.0, x1 - 9.0, y0 + 2.5, y1 - 2.2, DZ + 22.0, DZ + 25.0, M_HULL)
-mx, my = (x0 + x1) * 0.5 - 2.0, (y0 + y1) * 0.5
-for dx, dy in [(-1.4, -1.2), (1.4, -1.2), (-1.4, 1.2), (1.4, 1.2)]:                 # tripod-ish mast legs
-    isl.cyl(mx + dx, my + dy, DZ + 25.0, DZ + 40.0, 0.35, M_DARK, 8, 0.2)
-isl.box(mx - 2.2, mx + 2.2, my - 2.0, my + 2.0, DZ + 31.0, DZ + 31.4, M_DARK)
-isl.box(mx - 1.6, mx + 1.6, my - 1.4, my + 1.4, DZ + 36.0, DZ + 36.4, M_DARK)
-isl.cyl(mx, my, DZ + 40.0, DZ + 47.0, 0.18, M_DARK, 6, 0.06)
-for k in range(4):                                                                  # yard arms
-    zz = DZ + 33.0 + k * 3.0
-    isl.box(mx - 0.1, mx + 0.1, my - 4.0 + k * 0.6, my + 4.0 - k * 0.6, zz, zz + 0.15, M_DARK)
-# SPS-48 style planar array (aft top) + SPS-49 style dish (fwd top) + domes
-isl.box(x0 + 5.0, x0 + 5.6, my - 2.6, my + 2.6, DZ + 25.5, DZ + 30.2, M_DARK)
-isl.cyl(x0 + 5.3, my, DZ + 25.0, DZ + 25.5, 0.8, M_DARK, 10)
-isl.box(x1 - 7.5, x1 - 7.1, my - 3.6, my + 3.6, DZ + 26.0, DZ + 29.0, M_DARK)
-isl.cyl(x1 - 7.3, my, DZ + 25.0, DZ + 26.0, 0.6, M_DARK, 10)
-for (cx, cy, zz) in [(x0 + 12, y1 - 2.5, DZ + 25.0), (x1 - 12, y0 + 3.0, DZ + 25.0), (mx + 3.0, my + 2.8, DZ + 22.0)]:
-    isl.cyl(cx, cy, zz, zz + 1.2, 0.9, M_HULL, 12, 0.9)
-    isl.cyl(cx, cy, zz + 1.2, zz + 1.9, 0.9, M_HULL, 12, 0.1)
-# window rows (dark glass strips) on the inboard face
-for zz in (DZ + 9.6, DZ + 13.2):
-    for k in range(12):
-        wx = x0 + 3.0 + k * 2.3
-        if wx + 1.0 > x1 - 1.0:
-            break
-        isl.box(wx, wx + 1.1, y0 + (0.38 if zz < DZ + 12 else 0.78), y0 + (0.42 if zz < DZ + 12 else 0.82), zz, zz + 0.8, M_GLASS, top=False)
-# door (dark) at the spawn point
-dxw = L.ISLAND_DOOR[0]
-isl.box(dxw - 0.6, dxw + 0.6, y0 - 0.05, y0 + 0.02, DZ, DZ + 2.0, M_DARK, top=False)
-# big hull number field? no - generic island with ladders/boxes on the outboard face
+# (x0, x1, y0, y1, z0, z1) tiers, relative to the island footprint; the island is narrow (10 m) and tall
+tiers = [
+    (x0, x1, y0, y1, 0.0, 3.1), (x0 + 0.3, x1 - 0.3, y0 + 0.2, y1 - 0.1, 3.1, 6.2), (x0 + 0.6, x1 - 0.6, y0 + 0.4, y1 - 0.2, 6.2, 9.3),
+    (x0 + 1.5, x1 - 1.2, y0 + 0.6, y1 - 0.4, 9.3, 12.4), (x0 + 2.5, x1 - 2.0, y0 + 0.8, y1 - 0.6, 12.4, 15.4),
+]
+for (a, b, c, d, za, zb) in tiers:
+    isl.box(a, b, c, d, DZ + za, DZ + zb, M_ISL)
+    # deck lip + safety rail round each level (catwalk edge)
+    if za > 0.0:
+        isl.box(a - 0.5, b + 0.5, c - 0.55, c, DZ + za - 0.12, DZ + za, M_DARK)
+        isl.box(a - 0.5, b + 0.5, c - 0.55, c - 0.5, DZ + za, DZ + za + 1.05, M_NET)
+    # square windows (4 per bay) on the inboard, fore and aft faces
+    zw = DZ + za + 1.55
+    nx = int((b - a - 1.0) / 1.6)
+    for k in range(nx):
+        wx = a + 0.8 + k * 1.6
+        if k % 4 == 3:
+            continue
+        isl.box(wx, wx + 0.55, c - 0.03, c + 0.01, zw, zw + 0.55, M_GLASS, top=False)
+        isl.box(wx, wx + 0.55, d - 0.01, d + 0.03, zw, zw + 0.55, M_GLASS, top=False)
+    # vertical ribs / ladders on the outboard face
+    for k in range(int((b - a) / 3.2)):
+        rx = a + 1.0 + k * 3.2
+        isl.box(rx, rx + 0.12, d, d + 0.18, DZ + za, DZ + zb, M_DARK, top=False)
+# watertight doors along the deck-level inboard face
+for k in range(5):
+    dx = x0 + 3.0 + k * 6.0
+    isl.box(dx - 0.55, dx + 0.55, y0 - 0.06, y0 + 0.02, DZ, DZ + 1.95, M_DARK, top=False)
+# navigation bridge (forward) with a raked glass band + bridge wings
+bx0, bx1 = x1 - 12.0, x1 - 1.0
+isl.box(bx0, bx1, y0 - 0.2, y1 + 0.2, DZ + 15.4, DZ + 18.6, M_ISL)
+isl.quad((bx1, y0 - 0.2, DZ + 16.0), (bx1 + 1.0, y0 - 0.2, DZ + 18.0), (bx1 + 1.0, y1 + 0.2, DZ + 18.0), (bx1, y1 + 0.2, DZ + 16.0), M_GLASS)
+isl.quad((bx0, y0 - 0.2, DZ + 16.0), (bx1, y0 - 0.2, DZ + 16.0), (bx1 + 1.0, y0 - 0.2, DZ + 18.0), (bx0, y0 - 0.2, DZ + 18.0), M_ISL)
+isl.box(bx0 + 0.5, bx1 - 0.5, y0 - 0.25, y0 - 0.18, DZ + 16.2, DZ + 17.8, M_GLASS, top=False)
+isl.box(bx0 + 3.0, bx1, y0 - 3.8, y0 - 0.2, DZ + 15.9, DZ + 16.25, M_ISL)
+isl.box(bx0 + 3.0, bx1, y0 - 3.8, y0 - 3.7, DZ + 16.25, DZ + 17.3, M_NET)
+isl.box(bx0 + 3.0, bx1, y1 + 0.2, y1 + 2.6, DZ + 15.9, DZ + 16.25, M_ISL)
+# primary flight control (aft), cantilevered over the deck with glass on three sides
+px0, px1 = x0 + 0.5, x0 + 12.5
+isl.box(px0, px1, y0 - 2.2, y1 - 0.6, DZ + 15.4, DZ + 19.4, M_ISL)
+isl.box(px0 - 0.02, px1 + 0.02, y0 - 2.23, y0 - 2.12, DZ + 16.3, DZ + 18.6, M_GLASS, top=False)
+isl.box(px0 - 0.1, px0 + 0.02, y0 - 2.2, y1 - 1.0, DZ + 16.3, DZ + 18.6, M_GLASS, top=False)
+isl.quad((px0, y0 - 2.2, DZ + 15.4), (px1, y0 - 2.2, DZ + 15.4), (px1, y0 + 1.0, DZ + 13.8), (px0, y0 + 1.0, DZ + 13.8), M_ISL)   # knee brace
+# upper decks, stack of equipment rooms, mast
+isl.box(x0 + 3.0, x1 - 3.0, y0 + 1.0, y1 - 1.0, DZ + 19.4, DZ + 22.4, M_ISL)
+isl.box(x0 + 6.0, x1 - 8.0, y0 + 2.0, y1 - 1.8, DZ + 22.4, DZ + 25.2, M_ISL)
+isl.box(x0 + 2.5, x1 - 2.5, y0 + 0.6, y0 + 1.0, DZ + 22.3, DZ + 22.45, M_DARK)
+mx, my = (x0 + x1) * 0.5 - 1.5, (y0 + y1) * 0.5 + 0.3
+for dx, dy in [(-1.6, -1.3), (1.6, -1.3), (-1.6, 1.3), (1.6, 1.3)]:
+    isl.cyl(mx + dx, my + dy, DZ + 25.2, DZ + 41.0, 0.32, M_DARK, 8, 0.16)
+for k, zz in enumerate([DZ + 28.5, DZ + 32.5, DZ + 36.5]):
+    w = 2.6 - k * 0.5
+    isl.box(mx - w, mx + w, my - w * 0.9, my + w * 0.9, zz, zz + 0.3, M_DARK)
+    isl.box(mx - w, mx + w, my - w * 0.9 - 0.05, my - w * 0.9, zz + 0.3, zz + 1.1, M_NET)
+    for dx in (-w * 0.8, w * 0.8):
+        isl.cyl(mx + dx, my, zz + 0.3, zz + 1.2, 0.35, M_ISL, 10)
+isl.cyl(mx, my, DZ + 41.0, DZ + 49.0, 0.16, M_DARK, 6, 0.05)
+for k in range(4):
+    zz = DZ + 33.6 + k * 2.8
+    isl.box(mx - 0.08, mx + 0.08, my - 4.5 + k * 0.7, my + 4.5 - k * 0.7, zz, zz + 0.12, M_DARK)
+    for sg in (-1, 1):
+        isl.box(mx - 0.03, mx + 0.03, my + sg * (4.3 - k * 0.7) - 0.03, my + sg * (4.3 - k * 0.7) + 0.03, zz - 1.2, zz, M_DARK)
+# 3-D air search radar (planar array, tilted back) on a pedestal, forward top
+ax_, ay_ = x1 - 7.5, my
+isl.cyl(ax_, ay_, DZ + 25.2, DZ + 26.6, 0.7, M_DARK, 12)
+arr = [(ax_ + 0.0, ay_ - 2.7, DZ + 26.8), (ax_ + 0.0, ay_ + 2.7, DZ + 26.8), (ax_ - 0.9, ay_ + 2.7, DZ + 31.9), (ax_ - 0.9, ay_ - 2.7, DZ + 31.9)]
+isl.quad(*arr, M_DARK)
+isl.quad(arr[0], arr[3], arr[2], arr[1], M_DARK)
+for k in range(9):
+    zz = DZ + 27.2 + k * 0.52
+    isl.box(ax_ - 0.12 - (zz - DZ - 26.8) * 0.176, ax_ - 0.02 - (zz - DZ - 26.8) * 0.176, ay_ - 2.65, ay_ + 2.65, zz, zz + 0.06, M_ISL, top=False)
+# 2-D air search (long rectangular antenna) aft top on a mast platform
+bx_ = x0 + 5.0
+isl.cyl(bx_, my, DZ + 25.2, DZ + 27.4, 0.5, M_DARK, 10)
+isl.box(bx_ - 0.35, bx_ + 0.35, my - 3.9, my + 3.9, DZ + 27.4, DZ + 29.8, M_DARK)
 for k in range(6):
-    isl.box(x0 + 2 + k * 5, x0 + 3.5 + k * 5, y1, y1 + 0.5, DZ + 3.0 + (k % 2) * 3, DZ + 4.5 + (k % 2) * 3, M_DARK)
+    yy = my - 3.6 + k * 1.44
+    isl.box(bx_ - 0.5, bx_ + 0.5, yy, yy + 0.08, DZ + 27.5, DZ + 29.7, M_ISL, top=False)
+# SATCOM radomes and small arrays
+for (cx, cy, zz, r) in [(x0 + 11.5, y1 - 2.2, DZ + 22.4, 1.2), (x1 - 12.0, y0 + 2.6, DZ + 22.4, 1.0), (mx + 3.4, my + 2.4, DZ + 25.2, 0.8),
+                        (mx - 3.5, my - 2.2, DZ + 25.2, 0.7)]:
+    isl.cyl(cx, cy, zz, zz + r, r, M_HULL, 14, r)
+    isl.cyl(cx, cy, zz + r, zz + r * 1.8, r, M_HULL, 14, 0.12 * r)
+# whip antennas + light masts on the island edges
+for (wx, wy, zz, h) in [(x1 - 2.0, y1 - 0.5, DZ + 18.6, 6.0), (x0 + 1.0, y1 - 0.3, DZ + 19.4, 7.5), (x0 + 16.0, y1 - 0.4, DZ + 22.4, 5.0),
+                        (x1 - 4.0, y0 + 0.9, DZ + 25.2, 4.0)]:
+    isl.cyl(wx, wy, zz, zz + h, 0.06, M_DARK, 6, 0.02)
+# outboard equipment boxes, exhaust grilles, stair towers
+for k in range(7):
+    isl.box(x0 + 2 + k * 4.4, x0 + 3.6 + k * 4.4, y1, y1 + 0.55, DZ + 2.5 + (k % 3) * 2.6, DZ + 4.2 + (k % 3) * 2.6, M_DARK)
+for k in range(3):
+    isl.box(x0 + 8 + k * 7.5, x0 + 10 + k * 7.5, y0 - 0.02, y0 + 0.05, DZ + 10.0, DZ + 11.2, M_NET, top=False)
+isl.box(x0 - 2.2, x0, y0 + 1.0, y0 + 4.0, DZ, DZ + 9.3, M_ISL)                   # aft stair tower
+isl.box(x0 - 2.3, x0 - 2.2, y0 + 1.2, y0 + 3.8, DZ + 0.5, DZ + 9.0, M_NET, top=False)
 
 # ---------------------------------------------------------------- deck-edge fittings: CIWS/RAM mounts, antennas, liferafts
 fit = Builder("CarrierFittings")
@@ -642,15 +690,15 @@ if RENDER:
     k1 = el.new(0.313); k1.color = (0.012, 0.012, 0.012, 1)
     k2 = el.new(0.36); k2.color = (0.16, 0.175, 0.185, 1)
     nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
-    views = [((-300, 230, 140), (0, 0, 10)), ((330, -250, 90), (0, 0, 10)), ((-260, -40, 38), (-100, -10, 20)), ((20, 0, 420), (0, 0, 0))]
+    views = [((-300, 230, 140), (0, 0, 10)), ((330, -250, 90), (0, 0, 10)), ((-260, -40, 38), (-100, -10, 20)), ((20, 0, 420), (0, 0, 0)), ((25, -10, 28), (-24, 28, 32)), ((-70, 5, 23), (-24, 26, 30))]
     paths = []
     for k, (loc, tgt) in enumerate(views):
         cam = bpy.data.objects.new(f"Cam{k}", bpy.data.cameras.new(f"Cam{k}"))
         sc.collection.objects.link(cam)
         cam.location = Vector(loc) * Vector((1, -1, 1))
         d = (Vector(tgt) * Vector((1, -1, 1)) - cam.location)
-        cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler() if k < 3 else (0.0, 0.0, math.radians(-90))
-        cam.data.lens = 35 if k < 3 else 24
+        cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler() if k != 3 else (0.0, 0.0, math.radians(-90))
+        cam.data.lens = 24 if k == 3 else 35
         cam.data.clip_end = 20000
         sc.camera = cam
         p = os.path.join(OUT, f"render_{k}.png")

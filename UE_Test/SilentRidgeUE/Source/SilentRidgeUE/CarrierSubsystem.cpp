@@ -11,6 +11,8 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
@@ -373,6 +375,20 @@ void UCarrierSubsystem::Autotest(double Dt)
 		Ap.Afterburner = 0.0;
 		if (T > 2.5 && Jet->bGearDown) { Ap.bGearToggle = true; }
 		if (T > 1.5) { Shot(TEXT("after_launch"), 5); }
+		// external views of the carrier for the look review (fixed cameras, then back to the chase cam)
+		auto View = [&](const FVector& FromLocal, const FVector& AtLocal)
+		{
+			const FVector From = Carrier->LocalToUE(FromLocal), At = Carrier->LocalToUE(AtLocal);
+			ACameraActor* Cam = GetWorld()->SpawnActor<ACameraActor>(From, (At - From).Rotation());
+			if (Cam) { Cam->GetCameraComponent()->SetFieldOfView(50.f); Cam->SetLifeSpan(1.2f); PC->SetViewTarget(Cam); }
+		};
+		if (T > 3.6 && !bShot[13] && T < 4.0) { View(FVector(-330.0, 260.0, 95.0), FVector(-10.0, 0.0, 10.0)); }
+		if (T > 4.4) { Shot(TEXT("carrier_overview"), 13); }
+		if (T > 5.2 && !bShot[14] && T < 5.6) { View(FVector(230.0, -150.0, 26.0), FVector(0.0, 0.0, 16.0)); }
+		if (T > 6.0) { Shot(TEXT("carrier_bow"), 14); }
+		if (T > 6.8 && !bShot[15] && T < 7.2) { View(FVector(-10.0, 60.0, 30.0), FVector(-30.0, 20.0, 30.0)); }
+		if (T > 7.6) { Shot(TEXT("carrier_island"), 15); }
+		if (T > 8.3 && PC->GetViewTarget() != Jet) { PC->SetViewTarget(Jet); }
 		if (T > 3.0 && T - Dt <= 3.0)
 		{
 			const FVector L = Carrier->GodotToLocal(M.Position);
