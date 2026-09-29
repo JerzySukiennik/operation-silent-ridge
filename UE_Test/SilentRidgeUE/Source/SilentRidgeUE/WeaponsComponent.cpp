@@ -540,33 +540,40 @@ void UOsrWeaponsComponent::UpdateTgp(double Dt)
 
 void UOsrWeaponsComponent::UpdateCues(double Dt)
 {
-	CueAcc += Dt;
-	if (CueAcc < 0.25) { return; }
-	CueAcc = 0.0;
+	// the predictor flies whole bomb trajectories: spread the work (one "release now" sim every 0.2 s, and one step of the
+	// release-point sweep per frame) so it never costs a frame spike
 	AOsrJetPawn* J = Jet();
-	bInRange = false;
-	TimeToRelease = -1.0;
-	if (!J->bAlive || Bombs <= 0) { return; }
-	const FVector P = J->Model.Position + J->Model.Orientation.RotateVector(FVector(0.0, -1.4, 0.3));
-	const FVector V = J->Model.Velocity;
-	if (!bTgpValid)
+	if (!J->bAlive || Bombs <= 0 || (Selected != EOsrWeapon::Lgb && !bTgpView))
 	{
-		const FOsrBombSim S = AOsrLaserBomb::Simulate(P, V, P, false);
-		PredImpact = S.Impact; PredTof = S.Tof; PredMiss = 1e9;
+		bInRange = false; TimeToRelease = -1.0; SweepK = 0;
 		return;
 	}
-	const FOsrBombSim S = AOsrLaserBomb::Simulate(P, V, TgpPoint, true);
-	PredImpact = S.Impact; PredTof = S.Tof; PredMiss = S.bImpact ? S.Miss : 1e9;
-	bInRange = S.bImpact && S.Miss < 2.5;
-	if (bInRange) { TimeToRelease = 0.0; return; }
-	// straight-line extrapolation: when will the release point come up (level/diving flight)?
-	for (int32 K = 1; K <= 20; ++K)
+	const FVector P = J->Model.Position + J->Model.Orientation.RotateVector(FVector(0.0, -1.4, 0.3));
+	const FVector V = J->Model.Velocity;
+	CueAcc += Dt;
+	if (CueAcc >= 0.2)
 	{
-		const double T = K * 1.0;
-		const FVector Pk = P + V * T;
-		if (Pk.Y < Ground(Pk.X, Pk.Z) + 30.0) { break; }
+		CueAcc = 0.0;
+		const FOsrBombSim S = AOsrLaserBomb::Simulate(P, V, bTgpValid ? TgpPoint : P, bTgpValid);
+		PredImpact = S.Impact; PredTof = S.Tof; PredMiss = S.bImpact && bTgpValid ? S.Miss : 1e9;
+		bInRange = bTgpValid && S.bImpact && S.Miss < 2.5;
+		if (bInRange) { TimeToRelease = 0.0; SweepK = 0; }
+	}
+	if (!bTgpValid || bInRange) { return; }
+	// sweep: straight-line extrapolation 1..20 s ahead, one candidate per frame
+	++SweepK;
+	const FVector Pk = P + V * double(SweepK);
+	bool bDone = SweepK >= 20 || Pk.Y < Ground(Pk.X, Pk.Z) + 30.0;
+	if (!bDone)
+	{
 		const FOsrBombSim Sk = AOsrLaserBomb::Simulate(Pk, V, TgpPoint, true);
-		if (Sk.bImpact && Sk.Miss < 2.5) { TimeToRelease = T; break; }
+		if (Sk.bImpact && Sk.Miss < 2.5) { SweepBest = SweepK; bDone = true; }
+	}
+	if (bDone)
+	{
+		TimeToRelease = SweepBest > 0 ? double(SweepBest) : -1.0;
+		SweepBest = -1;
+		SweepK = 0;
 	}
 }
 

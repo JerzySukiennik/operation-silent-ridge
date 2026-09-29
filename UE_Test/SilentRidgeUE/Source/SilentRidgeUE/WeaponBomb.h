@@ -42,10 +42,10 @@ public:
 	FVector PlannedAim = FVector::ZeroVector;
 
 	/** One guidance/flight step shared with the predictor. Spot = laser spot if seen. */
-	static void Step(FVector& P, FVector& V, const FVector* Spot, double Dt);
+	static void Step(FVector& Pos, FVector& Vel, const FVector* Spot, double Dt);
 	/** Fly a bomb from (P, V) to the ground, guided onto Aim when bGuided (spot assumed visible), unguided otherwise. */
-	static FOsrBombSim Simulate(const FVector& P, const FVector& V, const FVector& Aim, bool bGuided, double MaxT = 90.0);
-	static TArray<AOsrLaserBomb*> InFlight(UWorld* W, const AActor* Owner);
+	static FOsrBombSim Simulate(const FVector& InP, const FVector& InV, const FVector& Aim, bool bGuided, double MaxT = 90.0);
+	static TArray<AOsrLaserBomb*> InFlight(UWorld* W, const AActor* ForOwner);
 
 private:
 	UPROPERTY() TObjectPtr<UProceduralMeshComponent> Body;

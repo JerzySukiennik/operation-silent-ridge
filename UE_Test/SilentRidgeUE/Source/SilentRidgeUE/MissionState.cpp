@@ -279,10 +279,10 @@ void AOsrMissionState::PlayVoice(FName Voice)
 
 // ---------------------------------------------------------------- lasers + decoys
 
-void AOsrMissionState::SetLaser(AActor* Owner, int32 Code, bool bOn, const FVector& From, const FVector& Spot)
+void AOsrMissionState::SetLaser(AActor* ByOwner, int32 Code, bool bOn, const FVector& From, const FVector& Spot)
 {
-	FOsrLaserSpot* L = Lasers.FindByPredicate([Owner](const FOsrLaserSpot& S) { return S.Owner.Get() == Owner; });
-	if (!L) { L = &Lasers.AddDefaulted_GetRef(); L->Owner = Owner; }
+	FOsrLaserSpot* L = Lasers.FindByPredicate([ByOwner](const FOsrLaserSpot& S) { return S.Owner.Get() == ByOwner; });
+	if (!L) { L = &Lasers.AddDefaulted_GetRef(); L->Owner = ByOwner; }
 	L->Code = Code; L->bOn = bOn; L->From = From; L->Spot = Spot; L->LastUpdate = MissionTime;
 }
 
@@ -302,14 +302,14 @@ bool AOsrMissionState::FindLaserSpot(int32 Code, const FVector& Seeker, const FV
 	return bOk;
 }
 
-int32 AOsrMissionState::DropDecoy(AActor* Owner, bool bFlare, const FVector& P, const FVector& V)
+int32 AOsrMissionState::DropDecoy(AActor* ByOwner, bool bFlare, const FVector& P, const FVector& V)
 {
 	FOsrDecoy D;
 	D.Id = NextDecoy++;
 	D.bFlare = bFlare;
 	D.P = P; D.V = V;
 	D.Life = bFlare ? 4.5 : 3.0;
-	D.Owner = Owner;
+	D.Owner = ByOwner;
 	if (AOsrMissionFx* Fx = AOsrMissionFx::Get(this))
 	{
 		if (bFlare) { D.TrailId = Fx->BeginTrail(2.2, 0.5, 2.8, FLinearColor(0.85f, 0.85f, 0.85f), 0.55, false); }

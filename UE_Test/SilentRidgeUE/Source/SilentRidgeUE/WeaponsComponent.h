@@ -114,6 +114,7 @@ private:
 	TSet<FString> KnownEmitters;
 	bool bWasPaused = false;
 	double TgpHold = 0.0;
+	int32 SweepK = 0, SweepBest = -1;
 	bool bTgpHoldUsed = false;
 	int32 LastRespawn = -1;
 	void BindInput();

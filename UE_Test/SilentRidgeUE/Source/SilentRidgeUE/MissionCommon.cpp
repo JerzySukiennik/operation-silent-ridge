@@ -217,7 +217,7 @@ void FMeshBuilder::Sphere(const FVector& Ctr, double R, int32 Seg, const FLinear
 		for (int32 S = 0; S < Seg; ++S)
 		{
 			const double A0 = UE_DOUBLE_TWO_PI * S / Seg, A1 = UE_DOUBLE_TWO_PI * (S + 1) / Seg;
-			auto Pt = [&](double T, double A) { return FVector(FMath::Cos(T) * FMath::Cos(A), FMath::Sin(T), FMath::Cos(T) * FMath::Sin(A)); };
+			auto Pt = [&](double Th, double Ph) { return FVector(FMath::Cos(Th) * FMath::Cos(Ph), FMath::Sin(Th), FMath::Cos(Th) * FMath::Sin(Ph)); };
 			const FVector D00 = Pt(T0, A0), D01 = Pt(T0, A1), D11 = Pt(T1, A1), D10 = Pt(T1, A0);
 			const int32 K0 = Vert(Ctr + D00 * R, D00, FVector2D(0, 0), Col);
 			const int32 K1 = Vert(Ctr + D01 * R, D01, FVector2D(1, 0), Col);

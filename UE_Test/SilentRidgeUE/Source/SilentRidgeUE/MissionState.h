@@ -111,13 +111,13 @@ public:
 
 	// ---- lasers
 	TArray<FOsrLaserSpot> Lasers;
-	void SetLaser(AActor* Owner, int32 Code, bool bOn, const FVector& From, const FVector& Spot);
+	void SetLaser(AActor* ByOwner, int32 Code, bool bOn, const FVector& From, const FVector& Spot);
 	/** Seeker search: a spot with this code inside the cone (Axis, HalfFov rad) from Seeker, with terrain line of sight. */
 	bool FindLaserSpot(int32 Code, const FVector& Seeker, const FVector& Axis, double HalfFov, FVector& OutSpot) const;
 
 	// ---- decoys
 	TArray<FOsrDecoy> Decoys;
-	int32 DropDecoy(AActor* Owner, bool bFlare, const FVector& P, const FVector& V);
+	int32 DropDecoy(AActor* ByOwner, bool bFlare, const FVector& P, const FVector& V);
 
 	/** Debug keys (keyboard): F5 cat launch, F6 trap OK 3-wire, F7 bolter, F8 reset mission, F9 jump to the canyon, F10 jump to the target area. */
 	bool bDebugKeys = true;

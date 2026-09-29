@@ -28,7 +28,7 @@ public:
 
 	void Park(const FVector& At, double Yaw);
 	void Scramble(const FVector& RunwayStart, const FVector& RunwayDir, double Delay);
-	void OnChaff(const AActor* Target);
+	void OnChaff(const AActor* ChaffFrom);
 	bool RwrFor(const AActor* Receiver, FOsrRwrContact& Out) const;
 	void ResetFighter();
 

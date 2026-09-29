@@ -76,12 +76,12 @@ void AOsrEnemyFighter::BuildMesh()
 	{
 		for (int32 Side = 0; Side < (bMirror ? 2 : 1); ++Side)
 		{
-			TArray<FVector> P = Q;
-			if (Side == 1) { for (FVector& X : P) { X.Z = -X.Z; } Swap(P[1], P[3]); }
-			const FVector N = FVector::CrossProduct(P[1] - P[0], P[3] - P[0]).GetSafeNormal();
+			TArray<FVector> Pts = Q;
+			if (Side == 1) { for (FVector& X : Pts) { X.Z = -X.Z; } Swap(Pts[1], Pts[3]); }
+			const FVector N = FVector::CrossProduct(Pts[1] - Pts[0], Pts[3] - Pts[0]).GetSafeNormal();
 			const FVector O = N * (Th * 0.5);
 			TArray<FVector> Tp, Bt;
-			for (const FVector& X : P) { Tp.Add(X + O); Bt.Add(X - O); }
+			for (const FVector& X : Pts) { Tp.Add(X + O); Bt.Add(X - O); }
 			Mb.Quad(Tp[0], Tp[1], Tp[2], Tp[3], C);
 			Mb.Quad(Bt[0], Bt[3], Bt[2], Bt[1], C);
 			for (int32 K = 0; K < 4; ++K)
@@ -306,9 +306,9 @@ void AOsrEnemyFighter::Attack(AOsrJetPawn* J, double Dt)
 	}
 }
 
-void AOsrEnemyFighter::OnChaff(const AActor* InTarget)
+void AOsrEnemyFighter::OnChaff(const AActor* ChaffFrom)
 {
-	if (Target.Get() == InTarget && FMath::FRand() < 0.5) { RadarBlind = 2.5; }
+	if (Target.Get() == ChaffFrom && FMath::FRand() < 0.5) { RadarBlind = 2.5; }
 }
 
 void AOsrEnemyFighter::Tick(float DeltaSeconds)

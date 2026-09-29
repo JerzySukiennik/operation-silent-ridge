@@ -23,30 +23,30 @@ AOsrLaserBomb::AOsrLaserBomb()
 	Body->bUseAsyncCooking = false;
 }
 
-TArray<AOsrLaserBomb*> AOsrLaserBomb::InFlight(UWorld* W, const AActor* Owner)
+TArray<AOsrLaserBomb*> AOsrLaserBomb::InFlight(UWorld* W, const AActor* ForOwner)
 {
 	TArray<AOsrLaserBomb*> Out;
 	if (!W) { return Out; }
 	for (TActorIterator<AOsrLaserBomb> It(W); It; ++It)
 	{
-		if (It->bAlive && (!Owner || It->OwnerJet.Get() == Owner)) { Out.Add(*It); }
+		if (It->bAlive && (!ForOwner || It->OwnerJet.Get() == ForOwner)) { Out.Add(*It); }
 	}
 	return Out;
 }
 
-void AOsrLaserBomb::Step(FVector& P, FVector& V, const FVector* Spot, double Dt)
+void AOsrLaserBomb::Step(FVector& Pos, FVector& Vel, const FVector* Spot, double Dt)
 {
-	const double Speed = FMath::Max(V.Size(), 1.0);
-	const FVector Vh = V / Speed;
-	const double Rf = FMath::Exp(-FMath::Max(P.Y, 0.0) / 8500.0);
+	const double Speed = FMath::Max(Vel.Size(), 1.0);
+	const FVector Vh = Vel / Speed;
+	const double Rf = FMath::Exp(-FMath::Max(Pos.Y, 0.0) / 8500.0);
 	FVector ALat = FVector::ZeroVector;
 	if (Spot)
 	{
-		const FVector R = *Spot - P;
+		const FVector R = *Spot - Pos;
 		const double Rl = FMath::Max(R.Size(), 1.0);
 		const FVector Rh = R / Rl;
-		const FVector Om = FVector::CrossProduct(R, -V) / (Rl * Rl);
-		const double Vc = FMath::Max(FVector::DotProduct(Rh, V), 50.0);
+		const FVector Om = FVector::CrossProduct(R, -Vel) / (Rl * Rl);
+		const double Vc = FMath::Max(FVector::DotProduct(Rh, Vel), 50.0);
 		ALat = NAV_N * Vc * FVector::CrossProduct(Om, Rh);
 		ALat += FVector(0, G0 * 0.9, 0);                         // gravity bias (glide)
 		ALat -= Vh * FVector::DotProduct(ALat, Vh);
@@ -55,33 +55,33 @@ void AOsrLaserBomb::Step(FVector& P, FVector& V, const FVector* Spot, double Dt)
 		if (ALat.Size() > AMax) { ALat = ALat.GetSafeNormal() * AMax; }
 	}
 	const FVector ADrag = -Vh * (DRAG_K * Rf * Speed * Speed + ALat.Size() * 0.16);   // parasite + induced (L/D ~ 6)
-	V += (ALat + ADrag + FVector(0, -G0, 0)) * Dt;
-	P += V * Dt;
+	Vel += (ALat + ADrag + FVector(0, -G0, 0)) * Dt;
+	Pos += Vel * Dt;
 }
 
 FOsrBombSim AOsrLaserBomb::Simulate(const FVector& InP, const FVector& InV, const FVector& Aim, bool bGuided, double MaxT)
 {
 	FOsrBombSim S;
-	FVector P = InP, V = InV;
+	FVector Pos = InP, Vel = InV;
 	const double Dt = 0.05;
 	double T = 0.0;
 	while (T < MaxT)
 	{
-		const bool bSee = bGuided && AngleBetween(V, Aim - P) < SEEKER_FOV;
-		const FVector P0 = P;
-		Step(P, V, bSee ? &Aim : nullptr, Dt);
+		const bool bSee = bGuided && AngleBetween(Vel, Aim - Pos) < SEEKER_FOV;
+		const FVector P0 = Pos;
+		Step(Pos, Vel, bSee ? &Aim : nullptr, Dt);
 		T += Dt;
-		const double G = Ground(P.X, P.Z);
+		const double G = Ground(Pos.X, Pos.Z);
 		// the aim point may sit on a structure above the terrain (vent collar): stop at its height near the aim
-		const double Floor = FVector2D(P.X - Aim.X, P.Z - Aim.Z).Size() < 30.0 ? FMath::Max(G, Aim.Y) : G;
-		if (P.Y <= Floor)
+		const double Floor = FVector2D(Pos.X - Aim.X, Pos.Z - Aim.Z).Size() < 30.0 ? FMath::Max(G, Aim.Y) : G;
+		if (Pos.Y <= Floor)
 		{
-			const double F = (P0.Y - Floor) / FMath::Max(P0.Y - P.Y, 1e-6);
-			S.Impact = FMath::Lerp(P0, P, FMath::Clamp(F, 0.0, 1.0));
+			const double F = (P0.Y - Floor) / FMath::Max(P0.Y - Pos.Y, 1e-6);
+			S.Impact = FMath::Lerp(P0, Pos, FMath::Clamp(F, 0.0, 1.0));
 			S.bImpact = true;
 			S.Tof = T - Dt * (1.0 - F);
 			S.Miss = FVector2D(S.Impact.X - Aim.X, S.Impact.Z - Aim.Z).Size();
-			S.ImpactAngleDeg = FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(-V.GetSafeNormal().Y, -1.0, 1.0)));
+			S.ImpactAngleDeg = FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(-Vel.GetSafeNormal().Y, -1.0, 1.0)));
 			return S;
 		}
 	}

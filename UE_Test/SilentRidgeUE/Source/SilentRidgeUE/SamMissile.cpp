@@ -213,7 +213,7 @@ void AOsrMissile::Tick(float DeltaSeconds)
 		const double Speed = FMath::Max(V.Size(), 1.0);
 		const FVector Vh = V / Speed;
 		CheckDecoys();
-		FVector Aim;
+		FVector Aim = LastAim;
 		const bool bGuide = T > (bColdLaunch ? 0.6 : 0.15) && AimPoint(Aim);
 		FVector ALat = FVector::ZeroVector;
 		if (bGuide)
