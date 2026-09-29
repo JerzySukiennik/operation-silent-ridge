@@ -4,6 +4,7 @@
 #include "OsrHud.h"
 #include "OsrTerrain.h"
 #include "OsrWorldLayout.h"
+#include "MissionState.h"
 #include "EngineUtils.h"
 #include "Camera/PlayerCameraManager.h"
 #include "LevelSequenceActor.h"
@@ -39,6 +40,8 @@ void AOsrGameMode::StartPlay()
 		}
 	}
 	Super::StartPlay();
+	// mission & combat (M3): one mission-state actor per world spawns the target plant, air defences and the enemy airbase
+	if (!bFlythrough && !FParse::Param(FCommandLine::Get(), TEXT("nomission"))) { GetWorld()->SpawnActor<AOsrMissionState>(AOsrMissionState::StaticClass(), FTransform::Identity); }
 	if (bAutotest)
 	{
 		FString Txt;

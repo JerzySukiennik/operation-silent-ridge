@@ -14,6 +14,12 @@ const FOsrHelpRow GOsrLayoutHelp[] = {
 	{TEXT("D-pad up  (V)"), TEXT("Carrier approach mode: Delta Flight Path + auto-throttle (gear down)")},
 	{TEXT("A / Cross  (Space)"), TEXT("Salute the shooter (on the catapult at MIL)")},
 	{TEXT("X / Square hold  (F)"), TEXT("Climb out (stopped on deck)")},
+	{TEXT("A / Cross  (Space)"), TEXT("Gear up: fire gun (hold) / release LGB (press)")},
+	{TEXT("X / Square  (Tab)"), TEXT("Gear up: weapon select GUN / LGB")},
+	{TEXT("D-pad up  (T / R)"), TEXT("Gear up: targeting pod view; hold = laser arm (auto-lase anyway)")},
+	{TEXT("Pod: R-stick L3 R3"), TEXT("Slew (IJKL) / point track, snaps to the vent (X) / zoom (Z)")},
+	{TEXT("D-pad left / right"), TEXT("Flares (1) / chaff (2); hold left = flare + chaff program")},
+	{TEXT("F5-F10 (debug)"), TEXT("cat launch, trap OK 3-wire, bolter, reset mission, jump to canyon / target")},
 	{TEXT("Back / Share"), TEXT("This help")},
 	{TEXT("Start / Options"), TEXT("Pause menu (respawn, invert pitch, quit)")},
 };

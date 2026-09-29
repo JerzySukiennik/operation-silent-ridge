@@ -3,6 +3,7 @@
 #include "OsrJetPawn.h"
 #include "OsrControls.h"
 #include "OsrPadInput.h"
+#include "MissionHud.h"
 #include "DeckHud.h"
 #include "Misc/CommandLine.h"
 #include "Engine/Canvas.h"
@@ -105,6 +106,7 @@ void AOsrHud::DrawHUD()
 	if (!Jet)
 	{
 		FDeckHud::Draw(this, Canvas, GetOwningPawn());   // on foot on the carrier (M3)
+		FOsrMissionHud::DrawOverlay(Canvas, GetOwningPawn());   // mission objective / radio / briefing / results (M3 mission)
 		return;
 	}
 	if (!Font && GEngine) { Font = GEngine->GetLargeFont(); }
@@ -115,6 +117,17 @@ void AOsrHud::DrawHUD()
 	if (!T.bAlive)
 	{
 		Text(Centre + FVector2D(0, -40) * S, TEXT("CRASHED"), 40, AL_CENTER, WARN);
+		FOsrMissionHud::DrawOverlay(Canvas, GetOwningPawn());
+		Help();
+		PauseMenu();
+		PadInfo();
+		return;
+	}
+	if (FOsrMissionHud::TgpFullscreen(Jet))
+	{
+		// targeting-pod page replaces the flight symbology (projected with the chase camera)
+		FOsrMissionHud::DrawJet(Canvas, Jet);
+		FOsrMissionHud::DrawOverlay(Canvas, GetOwningPawn());
 		Help();
 		PauseMenu();
 		PadInfo();
@@ -134,7 +147,9 @@ void AOsrHud::DrawHUD()
 	HeadingTape(T);
 	LowerBlocks(T);
 	Warnings(T);
+	FOsrMissionHud::DrawJet(Canvas, Jet);   // weapons, cues, RWR, missile warning (M3 mission)
 	FDeckHud::Draw(this, Canvas, GetOwningPawn());   // carrier ops: launch prompts, meatball repeater, LSO calls, grade (M3)
+	FOsrMissionHud::DrawOverlay(Canvas, GetOwningPawn());
 	Help();
 	PauseMenu();
 	PadInfo();
