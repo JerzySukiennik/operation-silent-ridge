@@ -187,3 +187,31 @@ Limitations:
 - The HP manifest assumes nobody edits `C:\Users\jurek\osr_ue\proj` by hand (else `--rehash-remote`). If the HP changes
   network, fix `HostName` in `~/.ssh/config` (ship.sh fails fast with "HP unreachable").
 - The old full pipeline (`hp_package.sh`, `hp_deploy_desktop.sh`, `hp_run_ue.sh`) still works for clean full builds.
+
+## M3 — carrier & deck (2026-09-29)
+
+Play starts **on foot at the island door** of a Nimitz-class carrier; the F-35C is parked by catapult 1.
+Walk (Manny + `ABP_Unarmed`, based movement on the moving/rolling deck, jet blast pushes you), climb in, taxi behind the yellow
+shirt, automatic hook-up on cat 1 (JBD raises), MIL, salute, shooter's launch signal, 2.3 s stroke to 150 kt (2.8 g), fly;
+recover with IFLOLS (world lens scaled with distance + HUD repeater), LSO radio (Piper TTS + radio filter), optional
+Delta Flight Path + auto-throttle (D-pad up), tailhook (D-pad down), 4 wires, bolter / wave-off, LSO grade + wire. Crash =
+respawn on foot on deck. Elevator 2 works (flight deck <-> hangar deck).
+
+- Carrier: own procedural model (`scripts/carrier/`): `layout.py` is the single source for deck geometry, gameplay points and the
+  generated `CarrierLayout.h`; `blender_carrier.py` builds hull/deck/island/hangar/elevator/JBD/collision/helmet;
+  `gen_deck_texture.py` paints the deck (4096x1024: landing area, wires, cats, elevators, rubber, soot, pad eyes);
+  `blender_f35_parts.py` splits the F-35C into body + 9 animated gear parts + tailhook and writes `CarrierF35Anim.h`;
+  `gen_radio.py` makes the radio calls; `ue_20_carrier.py` imports everything into `/Game/Carrier` (editor lock).
+  The Sketchfab CC-BY hull was not used (no Sketchfab API key in the Blender MCP addon); the visual hull is swappable.
+- Motion: 25 kt racetrack (14 km legs into the wind, 1.5 km port turns) parallel to the coast, t = 0 7 km before the layout
+  point; roll ~0.6 deg, pitch ~0.25 deg, heave ~0.3 m, heel in turns; wake = deferred decals over the ocean.
+- C++: `ACarrierActor`, `UCarrierJetOps` (via a small `IOsrJetDeckHook` on the jet), `FLsoMonitor`, `ADeckCrew`,
+  `AOsrCharacter`, `UCarrierSubsystem` (deck start, pawn switching, `-autotest=carrier`), `FDeckHud`.
+  Events for the mission: `ACarrierActor::OnCatapultLaunched / OnTrap(Grade, Wire) / OnBolter / OnWaveOff / OnSpawnedOnDeck`.
+- Command line: `-autotest=carrier` (elevator + hangar walk, walk to the jet, board, taxi, cat launch, climb, placed on a
+  2.3 km final, DFP approach, trap, climb out / re-board, hook-up approach -> wave-off + bolter), `-noelevator`, `-airstart`,
+  `-nocarrier`; plain `-autotest` still flies the canyon with the stage-2 jet.
+
+Epic, true 1920x1080, TSR 67 %, warm, `-autotest=carrier -noshots` (HP): deck phases 62.8 fps avg / 51.5 1% low,
+approach 57.9 / 50.4, VRAM peak 2.53 GB, no over-budget message. Canyon `-autotest` with the carrier in the world: 52.0 / 44.0.
+Autotest result: launch 150 kt in 2.33 s, trap 3-wire "OK", arrest 2.1 s at 3.2 g peak, bolter + wave-off detected.
