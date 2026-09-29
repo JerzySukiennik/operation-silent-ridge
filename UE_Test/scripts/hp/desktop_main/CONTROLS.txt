@@ -1,6 +1,7 @@
-OPERATION SILENT RIDGE - UE 5.7 stage 2 (flight)
+OPERATION SILENT RIDGE - UE 5.7 (M3: carrier ops)
 
-Start: double-click PLAY.cmd. You start in the air over the ocean, heading for the canyon mouth.
+Start: double-click PLAY.cmd. You start ON FOOT on the carrier deck at the island door. Your F-35C is parked by
+catapult 1 (yellow marker). Walk to it, climb in, follow the yellow shirt onto the catapult and launch.
 
 Gamepad: Xbox (XInput) pads and Sony DualShock 4 / DualSense (USB or Bluetooth) work out of the box.
 Layout (Xbox name / PlayStation name):
@@ -9,13 +10,27 @@ Layout (Xbox name / PlayStation name):
   LB / RB (L1/R1) rudder left / right
   Right stick     look around (auto-recentres); R3 (hold) = look back
   B / Circle      speedbrake (hold)
-  Y / Triangle    landing gear (drag + HUD "GEAR"; the model has no gear animation yet)
+  Y / Triangle    landing gear (animated)
+  D-pad down      tailhook up / down (keyboard H)
+  D-pad up        carrier approach mode: Delta Flight Path + auto-throttle, gear down (keyboard V)
+                  stick fore/aft then commands the glideslope (neutral = 3.5 deg to the deck), throttle = override/off
+  A / Cross       salute the shooter when on the catapult at MIL (keyboard Space)
+  X / Square      hold to climb out when stopped on deck (keyboard F)
   BACK / Share    controls help
   START / Options pause menu: Resume / Respawn / Invert pitch / Quit (D-pad or stick + A/Cross, B/Circle = back)
 
 Keyboard fallback: W/S pitch, A/D roll, Q/E rudder, Shift/Ctrl throttle, B brake, G gear, C look back,
 I/J/K/L look, F1 help, Esc or P menu, Enter = select.
 
-Crashing respawns you at the ocean start after 4 s.
+On foot: left stick / WASD walk (L3 / Shift run), right stick / mouse camera, A / Space jump,
+  X / Square / F interact (climb into your jet, elevator 2 between flight deck and hangar), Start = menu, Back = help.
+  Stay out of the jet blast behind a running engine.
+
+Carrier ops: taxi with RT (idle already creeps), steer with LB/RB or the stick, brake B. On the catapult: hook-up is
+automatic, the JBD raises, go to MIL (RT to 100 %), salute, the shooter fires the cat (~2 s to 150 kt).
+Landing: gear + hook down, fly the 3.5 deg glideslope (meatball repeater on the right, LSO calls on the radio),
+optionally D-pad up for DFP. Wires 1-4, target the 3-wire. Missing all wires = bolter, go around at MIL.
+
+Crashing respawns you on foot on the carrier deck after 4 s.
 
 If the pad seems wrong: start PLAY - input debug.cmd and send a screenshot of the white INPUT DEBUG box.

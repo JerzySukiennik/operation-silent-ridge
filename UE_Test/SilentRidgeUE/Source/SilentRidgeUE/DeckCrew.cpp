@@ -14,12 +14,12 @@
 
 namespace
 {
-	const TCHAR* MANNY = TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple");
-	const TCHAR* IDLE = TEXT("/Game/Characters/Mannequins/Anims/Unarmed/MM_Idle.MM_Idle");
-	const TCHAR* WALK = TEXT("/Game/Characters/Mannequins/Anims/Unarmed/Walk/MF_Unarmed_Walk_Fwd.MF_Unarmed_Walk_Fwd");
-	const FLinearColor YELLOW(0.85f, 0.62f, 0.02f), GREEN(0.06f, 0.35f, 0.08f), WHITE(0.8f, 0.8f, 0.78f), BLUE(0.03f, 0.1f, 0.45f);
-	const FLinearColor BROWN(0.22f, 0.12f, 0.05f), PURPLE(0.3f, 0.05f, 0.35f), REDJ(0.6f, 0.04f, 0.03f), KHAKI(0.36f, 0.3f, 0.18f);
-	constexpr double WALK_SPEED = 1.5;   // m/s
+	const TCHAR* Crew_MANNY = TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple");
+	const TCHAR* Crew_IDLE = TEXT("/Game/Characters/Mannequins/Anims/Unarmed/MM_Idle.MM_Idle");
+	const TCHAR* Crew_WALK = TEXT("/Game/Characters/Mannequins/Anims/Unarmed/Walk/MF_Unarmed_Walk_Fwd.MF_Unarmed_Walk_Fwd");
+	const FLinearColor Crew_YELLOW(0.85f, 0.62f, 0.02f), Crew_GREEN(0.06f, 0.35f, 0.08f), Crew_WHITE(0.8f, 0.8f, 0.78f), Crew_BLUE(0.03f, 0.1f, 0.45f);
+	const FLinearColor Crew_BROWN(0.22f, 0.12f, 0.05f), Crew_PURPLE(0.3f, 0.05f, 0.35f), Crew_REDJ(0.6f, 0.04f, 0.03f), Crew_KHAKI(0.36f, 0.3f, 0.18f);
+	constexpr double Crew_WALK_SPEED = 1.5;   // m/s
 }
 
 ADeckCrew::ADeckCrew()
@@ -35,7 +35,7 @@ FVector ADeckCrew::Dir(double F, double R, double U, bool bRight) const
 	return (FwdCS * F + RightCS * (bRight ? R : -R) + UpCS * U).GetSafeNormal();
 }
 
-void ADeckCrew::CatHome(int32 CatIndex, ECrewRole Role, FVector2D& OutPos, double& OutYaw)
+void ADeckCrew::CatHome(int32 CatIndex, ECrewRole InRole, FVector2D& OutPos, double& OutYaw)
 {
 	using namespace CarrierLayout;
 	const FCat& C = Cats[FMath::Clamp(CatIndex, 0, 3)];
@@ -43,7 +43,7 @@ void ADeckCrew::CatHome(int32 CatIndex, ECrewRole Role, FVector2D& OutPos, doubl
 	const FVector2D D(FMath::Cos(H), FMath::Sin(H)), N(-D.Y, D.X);
 	const FVector2D S(C.X, C.Y);
 	const double Side = C.Y > 0.0 ? -1.0 : 1.0;   // inboard side of the cat
-	switch (Role)
+	switch (InRole)
 	{
 	case ECrewRole::Shooter: OutPos = S + D * 6.0 + N * (Side * 13.0); OutYaw = C.HdgDeg + (Side > 0 ? -120.0 : 120.0); break;
 	case ECrewRole::Hook1: OutPos = S + D * 3.0 + N * 9.5; OutYaw = C.HdgDeg - 150.0; break;
@@ -53,14 +53,14 @@ void ADeckCrew::CatHome(int32 CatIndex, ECrewRole Role, FVector2D& OutPos, doubl
 	}
 }
 
-void ADeckCrew::Add(ECrewRole Role, const FVector2D& Pos, double Yaw, const FLinearColor& Jersey, bool bPoseable, const FLinearColor& Pants)
+void ADeckCrew::Add(ECrewRole InRole, const FVector2D& Pos, double Yaw, const FLinearColor& Jersey, bool bPoseable, const FLinearColor& Pants)
 {
-	USkeletalMesh* Mesh = LoadObject<USkeletalMesh>(nullptr, MANNY);
+	USkeletalMesh* Mesh = LoadObject<USkeletalMesh>(nullptr, Crew_MANNY);
 	UMaterialInterface* Suit = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Carrier/Materials/M_CrewSuit.M_CrewSuit"));
 	UStaticMesh* Helmet = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/Carrier/Meshes/SM_Helmet.SM_Helmet"));
 	if (!Mesh) { return; }
 	FMember M;
-	M.Role = Role;
+	M.Role = InRole;
 	M.Pos = M.Target = Pos;
 	M.Yaw = M.TargetYaw = Yaw;
 	M.Phase = FMath::FRandRange(0.0, 6.0);
@@ -88,7 +88,7 @@ void ADeckCrew::Add(ECrewRole Role, const FVector2D& Pos, double Yaw, const FLin
 	{
 		Mid->SetVectorParameterValue(TEXT("Torso"), Jersey);
 		Mid->SetVectorParameterValue(TEXT("Pants"), Pants);
-		Mid->SetVectorParameterValue(TEXT("Gloves"), Role == ECrewRole::Lso || Role == ECrewRole::LsoBackup ? FLinearColor(0.05f, 0.04f, 0.03f) : FLinearColor(0.35f, 0.3f, 0.2f));
+		Mid->SetVectorParameterValue(TEXT("Gloves"), InRole == ECrewRole::Lso || InRole == ECrewRole::LsoBackup ? FLinearColor(0.05f, 0.04f, 0.03f) : FLinearColor(0.35f, 0.3f, 0.2f));
 		Mid->SetScalarParameterValue(TEXT("Stripes"), 1.0f);
 		for (int32 I = 0; I < Mesh->GetMaterials().Num(); ++I) { C->SetMaterial(I, Mid); }
 		Mids.Add(Mid);
@@ -96,7 +96,7 @@ void ADeckCrew::Add(ECrewRole Role, const FVector2D& Pos, double Yaw, const FLin
 	C->RegisterComponent();
 	if (M.Anim)
 	{
-		if (UAnimSequence* A = LoadObject<UAnimSequence>(nullptr, IDLE)) { M.Anim->PlayAnimation(A, true); M.Anim->SetPosition(float(M.Phase)); }
+		if (UAnimSequence* A = LoadObject<UAnimSequence>(nullptr, Crew_IDLE)) { M.Anim->PlayAnimation(A, true); M.Anim->SetPosition(float(M.Phase)); }
 	}
 	if (Helmet)
 	{
@@ -126,7 +126,7 @@ void ADeckCrew::Init(ACarrierActor* InCarrier)
 	Carrier = InCarrier;
 	AttachToActor(InCarrier, FAttachmentTransformRules::KeepRelativeTransform);
 	SetActorRelativeTransform(FTransform::Identity);
-	USkeletalMesh* Mesh = LoadObject<USkeletalMesh>(nullptr, MANNY);
+	USkeletalMesh* Mesh = LoadObject<USkeletalMesh>(nullptr, Crew_MANNY);
 	if (!Mesh)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("OSR crew: mannequin missing"));
@@ -146,8 +146,8 @@ void ADeckCrew::Init(ACarrierActor* InCarrier)
 		PrimaryActorTick.AddPrerequisite(D, D->PrimaryComponentTick);
 		return D;
 	};
-	IdleDriver = Driver(IDLE);
-	WalkDriver = Driver(WALK);
+	IdleDriver = Driver(Crew_IDLE);
+	WalkDriver = Driver(Crew_WALK);
 	// component-space frame of the mannequin (faces +Y) and the helmet offset from the reference pose
 	const FReferenceSkeleton& Ref = Mesh->GetRefSkeleton();
 	auto RefCS = [&](FName B) { const int32 I = Ref.FindBoneIndex(B); return I != INDEX_NONE ? FAnimationRuntime::GetComponentSpaceTransformRefPose(Ref, I) : FTransform::Identity; };
@@ -163,42 +163,42 @@ void ADeckCrew::Init(ACarrierActor* InCarrier)
 
 	FVector2D P; double Y;
 	const FVector2D Jet(PlayerJet.X, PlayerJet.Y);
-	Add(ECrewRole::Director, Jet + FVector2D(14.0, -5.0), PlayerJet.Z + 180.0, YELLOW, true);
-	CatHome(0, ECrewRole::Shooter, P, Y); Add(ECrewRole::Shooter, P, Y, YELLOW, true, KHAKI);
-	CatHome(0, ECrewRole::Hook1, P, Y); Add(ECrewRole::Hook1, P, Y, GREEN, true);
-	CatHome(0, ECrewRole::Hook2, P, Y); Add(ECrewRole::Hook2, P, Y, GREEN, true);
-	CatHome(0, ECrewRole::Checker, P, Y); Add(ECrewRole::Checker, P, Y, WHITE, true);
-	Add(ECrewRole::Lso, LsoPlatform + FVector2D(0.5, -2.2), LandHdgDeg + 180.0, WHITE, true, KHAKI);
-	Add(ECrewRole::LsoBackup, LsoPlatform + FVector2D(-1.6, -2.6), LandHdgDeg + 170.0, WHITE, false, KHAKI);
+	Add(ECrewRole::Director, Jet + FVector2D(14.0, -5.0), PlayerJet.Z + 180.0, Crew_YELLOW, true);
+	CatHome(0, ECrewRole::Shooter, P, Y); Add(ECrewRole::Shooter, P, Y, Crew_YELLOW, true, Crew_KHAKI);
+	CatHome(0, ECrewRole::Hook1, P, Y); Add(ECrewRole::Hook1, P, Y, Crew_GREEN, true);
+	CatHome(0, ECrewRole::Hook2, P, Y); Add(ECrewRole::Hook2, P, Y, Crew_GREEN, true);
+	CatHome(0, ECrewRole::Checker, P, Y); Add(ECrewRole::Checker, P, Y, Crew_WHITE, true);
+	Add(ECrewRole::Lso, LsoPlatform + FVector2D(0.5, -2.2), LandHdgDeg + 180.0, Crew_WHITE, true, Crew_KHAKI);
+	Add(ECrewRole::LsoBackup, LsoPlatform + FVector2D(-1.6, -2.6), LandHdgDeg + 170.0, Crew_WHITE, false, Crew_KHAKI);
 	// ambient crew around the parked row, island and elevators
 	const struct { double X, Y, Yaw; FLinearColor C; } Amb[] = {
-		{-44.0, 16.5, 120.0, BLUE}, {-50.5, 17.2, 60.0, BROWN}, {-92.0, 16.0, 200.0, REDJ}, {-106.0, 15.5, 10.0, BLUE},
-		{-20.0, 19.5, -60.0, PURPLE}, {-4.0, 21.0, 180.0, WHITE}, {33.0, 21.0, 150.0, BROWN}, {-118.0, 16.0, 90.0, GREEN},
+		{-44.0, 16.5, 120.0, Crew_BLUE}, {-50.5, 17.2, 60.0, Crew_BROWN}, {-92.0, 16.0, 200.0, Crew_REDJ}, {-106.0, 15.5, 10.0, Crew_BLUE},
+		{-20.0, 19.5, -60.0, Crew_PURPLE}, {-4.0, 21.0, 180.0, Crew_WHITE}, {33.0, 21.0, 150.0, Crew_BROWN}, {-118.0, 16.0, 90.0, Crew_GREEN},
 	};
 	for (const auto& A : Amb) { Add(ECrewRole::Ambient, FVector2D(A.X, A.Y), A.Yaw, A.C, false); }
 }
 
-ADeckCrew::FMember* ADeckCrew::Find(ECrewRole Role)
+ADeckCrew::FMember* ADeckCrew::Find(ECrewRole InRole)
 {
-	for (FMember& M : Crew) { if (M.Role == Role) { return &M; } }
+	for (FMember& M : Crew) { if (M.Role == InRole) { return &M; } }
 	return nullptr;
 }
 
-const ADeckCrew::FMember* ADeckCrew::Find(ECrewRole Role) const
+const ADeckCrew::FMember* ADeckCrew::Find(ECrewRole InRole) const
 {
-	for (const FMember& M : Crew) { if (M.Role == Role) { return &M; } }
+	for (const FMember& M : Crew) { if (M.Role == InRole) { return &M; } }
 	return nullptr;
 }
 
-FVector2D ADeckCrew::PositionOf(ECrewRole Role) const
+FVector2D ADeckCrew::PositionOf(ECrewRole InRole) const
 {
-	const FMember* M = Find(Role);
+	const FMember* M = Find(InRole);
 	return M ? M->Pos : FVector2D::ZeroVector;
 }
 
-void ADeckCrew::Command(ECrewRole Role, const FVector2D& Pos, double YawDeg, ECrewSignal Signal)
+void ADeckCrew::Command(ECrewRole InRole, const FVector2D& Pos, double YawDeg, ECrewSignal Signal)
 {
-	if (FMember* M = Find(Role))
+	if (FMember* M = Find(InRole))
 	{
 		M->Target = Pos;
 		M->TargetYaw = YawDeg;
@@ -207,9 +207,9 @@ void ADeckCrew::Command(ECrewRole Role, const FVector2D& Pos, double YawDeg, ECr
 	}
 }
 
-void ADeckCrew::Face(ECrewRole Role, const FVector2D& LookAt)
+void ADeckCrew::Face(ECrewRole InRole, const FVector2D& LookAt)
 {
-	if (FMember* M = Find(Role))
+	if (FMember* M = Find(InRole))
 	{
 		const FVector2D D = LookAt - M->Pos;
 		if (D.SizeSquared() > 0.01) { M->TargetYaw = FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X)); }
@@ -339,7 +339,7 @@ void ADeckCrew::Tick(float DeltaSeconds)
 		M.bMoving = Dist > 0.25;
 		if (M.bMoving)
 		{
-			M.Pos += D / Dist * FMath::Min(Dist, WALK_SPEED * DeltaSeconds * (Dist > 6.0 ? 2.2 : 1.0));
+			M.Pos += D / Dist * FMath::Min(Dist, Crew_WALK_SPEED * DeltaSeconds * (Dist > 6.0 ? 2.2 : 1.0));
 			const double WalkYaw = FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X));
 			M.Yaw += FMath::FindDeltaAngleDegrees(M.Yaw, WalkYaw) * FMath::Min(1.0, DeltaSeconds * 6.0);
 		}

@@ -21,7 +21,7 @@ using namespace OsrMath;
 
 namespace
 {
-	constexpr double KT = 0.514444;
+	constexpr double Sub_KT = 0.514444;
 }
 
 bool UCarrierSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -332,12 +332,12 @@ void UCarrierSubsystem::Autotest(double Dt)
 		if (T > 3.0 && T - Dt <= 3.0)
 		{
 			const FVector L = Carrier->GodotToLocal(M.Position);
-			UE_LOG(LogTemp, Display, TEXT("REPORT carrier_after_launch ias_kt=%.0f alt_ft=%.0f vs_fpm=%.0f alive=%s x_local=%.0f"), M.Cas / KT, M.Position.Y / 0.3048, M.Velocity.Y / 0.3048 * 60.0, Jet->bAlive ? TEXT("true") : TEXT("false"), L.X);
+			UE_LOG(LogTemp, Display, TEXT("REPORT carrier_after_launch ias_kt=%.0f alt_ft=%.0f vs_fpm=%.0f alive=%s x_local=%.0f"), M.Cas / Sub_KT, M.Position.Y / 0.3048, M.Velocity.Y / 0.3048 * 60.0, Jet->bAlive ? TEXT("true") : TEXT("false"), L.X);
 		}
 		if (T > 9.0)
 		{
 			Jet->bGearDown = true;
-			Ops->PlaceOnApproach(2300.0, 140.0 * KT);
+			Ops->PlaceOnApproach(2300.0, 140.0 * Sub_KT);
 			++Approaches;
 			LatPrev = 0.0;
 			Phase = TEXT("approach");
@@ -357,7 +357,7 @@ void UCarrierSubsystem::Autotest(double Dt)
 			{
 				TrapText = FString::Printf(TEXT("%s comment=\"%s\""), *Ops->ResultText, *Ops->Lso.LastComment);
 				// second pass: hook up on purpose -> LSO "hook down" + wave-off, touch-and-go = bolter
-				Ops->PlaceOnApproach(2300.0, 140.0 * KT);
+				Ops->PlaceOnApproach(2300.0, 140.0 * Sub_KT);
 				Ops->bHookDown = false;
 				++Approaches;
 				LatPrev = 0.0;

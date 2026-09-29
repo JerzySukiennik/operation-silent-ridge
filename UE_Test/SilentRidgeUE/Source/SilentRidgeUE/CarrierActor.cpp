@@ -20,21 +20,21 @@
 
 namespace
 {
-	using namespace CarrierLayout;
-	constexpr double LEG = 14000.0;       // racetrack straight legs, m
-	constexpr double TURN_R = 1500.0;     // turn radius, m
-	constexpr double START_BACK = 7000.0; // t = 0 is this far behind the layout point on the upwind leg
-	constexpr int32 WAKE_SEGS = 12;
-	constexpr double WAKE_LEN = 110.0;
-	const FLinearColor AMBER(1.0f, 0.5f, 0.05f), RED(1.0f, 0.04f, 0.02f), GREEN(0.1f, 1.0f, 0.2f), WHITE(1.0f, 0.95f, 0.85f);
-	constexpr int32 LENS_CELLS = 12;
-	constexpr double LENS_RANGE = 0.8;    // +- deg covered by the cell column
+	constexpr double Cv_LEG = 14000.0;       // racetrack straight legs, m
+	constexpr double Cv_TURN_R = 1500.0;     // turn radius, m
+	constexpr double Cv_START_BACK = 7000.0; // t = 0 is this far behind the layout point on the upwind leg
+	constexpr int32 Cv_WAKE_SEGS = 12;
+	constexpr double Cv_WAKE_LEN = 110.0;
+	const FLinearColor Cv_AMBER(1.0f, 0.5f, 0.05f), Cv_RED(1.0f, 0.04f, 0.02f), Cv_GREEN(0.1f, 1.0f, 0.2f), Cv_WHITE(1.0f, 0.95f, 0.85f);
+	constexpr int32 Cv_LENS_CELLS = 12;
+	constexpr double Cv_LENS_RANGE = 0.8;    // +- deg covered by the cell column
 
-	FVector2D V2(const FVector& V) { return FVector2D(V.X, V.Y); }
+	FVector2D Cv_V2(const FVector& V) { return FVector2D(V.X, V.Y); }
 }
 
 ACarrierActor::ACarrierActor()
 {
+	using namespace CarrierLayout;
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	Collision = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Collision"));
@@ -66,6 +66,7 @@ ACarrierActor::ACarrierActor()
 
 ACarrierActor* ACarrierActor::Get(const UObject* WorldContext)
 {
+	using namespace CarrierLayout;
 	UWorld* W = WorldContext ? WorldContext->GetWorld() : nullptr;
 	if (!W) { return nullptr; }
 	for (TActorIterator<ACarrierActor> It(W); It; ++It) { return *It; }
@@ -74,6 +75,7 @@ ACarrierActor* ACarrierActor::Get(const UObject* WorldContext)
 
 FString ACarrierActor::GradeText(ELsoGrade G)
 {
+	using namespace CarrierLayout;
 	switch (G)
 	{
 	case ELsoGrade::Perfect: return TEXT("_OK_");
@@ -88,6 +90,7 @@ FString ACarrierActor::GradeText(ELsoGrade G)
 
 UStaticMeshComponent* ACarrierActor::AddMesh(const TCHAR* Name, const TCHAR* Path, USceneComponent* Parent)
 {
+	using namespace CarrierLayout;
 	UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this, Name);
 	C->SetupAttachment(Parent ? Parent : Collision);
 	C->SetMobility(EComponentMobility::Movable);
@@ -102,39 +105,41 @@ UStaticMeshComponent* ACarrierActor::AddMesh(const TCHAR* Name, const TCHAR* Pat
 
 double ACarrierActor::Clock() const
 {
+	using namespace CarrierLayout;
 	const UWorld* W = GetWorld();
 	return (W ? W->GetTimeSeconds() : 0.0) + TimeOffset;
 }
 
 FCarrierPose ACarrierActor::Evaluate(double T) const
 {
+	using namespace CarrierLayout;
 	// racetrack: upwind leg (into the wind, along Dir2D), port turn, downwind leg, port turn
 	const FVector2D D = Dir2D;
 	const FVector2D Left(D.Y, -D.X);
 	const FVector2D A(StartUE.X * 0.01, StartUE.Y * 0.01);
-	const FVector2D B = A + D * LEG;
-	const double Per = 2.0 * LEG + 2.0 * UE_DOUBLE_PI * TURN_R;
+	const FVector2D B = A + D * Cv_LEG;
+	const double Per = 2.0 * Cv_LEG + 2.0 * UE_DOUBLE_PI * Cv_TURN_R;
 	const double S = OsrMath::FPosMod(SpeedMs * T, Per);
 	FVector2D P, Dir;
 	double Heel = 0.0;
-	if (S < LEG) { P = A + D * S; Dir = D; }
-	else if (S < LEG + UE_DOUBLE_PI * TURN_R)
+	if (S < Cv_LEG) { P = A + D * S; Dir = D; }
+	else if (S < Cv_LEG + UE_DOUBLE_PI * Cv_TURN_R)
 	{
-		const double Th = (S - LEG) / TURN_R;
-		P = B + Left * TURN_R + (-Left * FMath::Cos(Th) + D * FMath::Sin(Th)) * TURN_R;
+		const double Th = (S - Cv_LEG) / Cv_TURN_R;
+		P = B + Left * Cv_TURN_R + (-Left * FMath::Cos(Th) + D * FMath::Sin(Th)) * Cv_TURN_R;
 		Dir = D * FMath::Cos(Th) + Left * FMath::Sin(Th);
 		Heel = 1.2 * FMath::Min(FMath::Min(Th, UE_DOUBLE_PI - Th) / 0.3, 1.0);
 	}
-	else if (S < 2.0 * LEG + UE_DOUBLE_PI * TURN_R)
+	else if (S < 2.0 * Cv_LEG + UE_DOUBLE_PI * Cv_TURN_R)
 	{
-		const double U = S - LEG - UE_DOUBLE_PI * TURN_R;
-		P = B + Left * (2.0 * TURN_R) - D * U;
+		const double U = S - Cv_LEG - UE_DOUBLE_PI * Cv_TURN_R;
+		P = B + Left * (2.0 * Cv_TURN_R) - D * U;
 		Dir = -D;
 	}
 	else
 	{
-		const double Th = (S - 2.0 * LEG - UE_DOUBLE_PI * TURN_R) / TURN_R;
-		P = A + Left * TURN_R + (Left * FMath::Cos(Th) - D * FMath::Sin(Th)) * TURN_R;
+		const double Th = (S - 2.0 * Cv_LEG - UE_DOUBLE_PI * Cv_TURN_R) / Cv_TURN_R;
+		P = A + Left * Cv_TURN_R + (Left * FMath::Cos(Th) - D * FMath::Sin(Th)) * Cv_TURN_R;
 		Dir = -D * FMath::Cos(Th) - Left * FMath::Sin(Th);
 		Heel = 1.2 * FMath::Min(FMath::Min(Th, UE_DOUBLE_PI - Th) / 0.3, 1.0);
 	}
@@ -152,16 +157,19 @@ FCarrierPose ACarrierActor::Evaluate(double T) const
 
 FVector ACarrierActor::LocalToGodot(const FVector& LocalM) const
 {
+	using namespace CarrierLayout;
 	return AOsrJetPawn::FromUE(LocalToUE(LocalM));
 }
 
 FVector ACarrierActor::GodotToLocal(const FVector& G) const
 {
+	using namespace CarrierLayout;
 	return UEToLocal(AOsrJetPawn::ToUE(G));
 }
 
 FVector ACarrierActor::UEToStabilized(const FVector& WorldCm, const FVector& OriginLocalM) const
 {
+	using namespace CarrierLayout;
 	const FVector O = LocalToUE(OriginLocalM);
 	return FRotator(0.0, Cur.YawDeg, 0.0).Quaternion().UnrotateVector(WorldCm - O) * 0.01;
 }
@@ -170,6 +178,7 @@ FVector ACarrierActor::UEToStabilized(const FVector& WorldCm, const FVector& Ori
 
 bool ACarrierActor::InDeckOutline(double X, double Y)
 {
+	using namespace CarrierLayout;
 	const int32 N = UE_ARRAY_COUNT(Outline);
 	bool bIn = false;
 	for (int32 I = 0, J = N - 1; I < N; J = I++)
@@ -183,6 +192,7 @@ bool ACarrierActor::InDeckOutline(double X, double Y)
 
 bool ACarrierActor::InsideShip(const FVector& L)
 {
+	using namespace CarrierLayout;
 	if (L.Z > DeckZ + 0.02)
 	{
 		return L.Z < DeckZ + 24.0 && L.X > Island.Min.X && L.X < Island.Max.X && L.Y > Island.Min.Y && L.Y < Island.Max.Y;
@@ -196,12 +206,14 @@ bool ACarrierActor::InsideShip(const FVector& L)
 
 FVector2D ACarrierActor::LandDir()
 {
+	using namespace CarrierLayout;
 	const double A = FMath::DegreesToRadians(LandHdgDeg);
 	return FVector2D(FMath::Cos(A), FMath::Sin(A));
 }
 
 FVector2D ACarrierActor::LandPoint(double S, double Lat)
 {
+	using namespace CarrierLayout;
 	const FVector2D D = LandDir();
 	const FVector2D N(-D.Y, D.X);
 	return LandR0 + D * S + N * Lat;
@@ -209,6 +221,7 @@ FVector2D ACarrierActor::LandPoint(double S, double Lat)
 
 FVector2D ACarrierActor::ToLanding(const FVector2D& P)
 {
+	using namespace CarrierLayout;
 	const FVector2D D = LandDir();
 	const FVector2D N(-D.Y, D.X);
 	const FVector2D R = P - LandR0;
@@ -217,6 +230,7 @@ FVector2D ACarrierActor::ToLanding(const FVector2D& P)
 
 double ACarrierActor::ElevatorZ() const
 {
+	using namespace CarrierLayout;
 	const double S = ElevatorPos * ElevatorPos * (3.0 - 2.0 * ElevatorPos);
 	return FMath::Lerp(DeckZ, HangarFloor, S);
 }
@@ -225,14 +239,15 @@ double ACarrierActor::ElevatorZ() const
 
 void ACarrierActor::BeginPlay()
 {
+	using namespace CarrierLayout;
 	Super::BeginPlay();
-	// upwind leg: perpendicular to the carrier -> fjord mouth line, sailing NNW (wind from the NNW); t = 0 is START_BACK m before the layout point
+	// upwind leg: perpendicular to the carrier -> fjord mouth line, sailing NNW (wind from the NNW); t = 0 is Cv_START_BACK m before the layout point
 	const FVector2D CarrierXY(OsrWorld::Carrier.X, OsrWorld::Carrier.Z);
 	const FVector2D MouthXY(OsrWorld::Mouth.X, OsrWorld::Mouth.Z);
 	const FVector2D ToCoast = (MouthXY - CarrierXY).GetSafeNormal();
 	Dir2D = FVector2D(-ToCoast.Y, ToCoast.X);
 	if (Dir2D.Y > 0.0) { Dir2D = -Dir2D; }                 // UE -Y = north
-	const FVector2D Start = CarrierXY - Dir2D * START_BACK;
+	const FVector2D Start = CarrierXY - Dir2D * Cv_START_BACK;
 	StartUE = FVector(Start.X * 100.0, Start.Y * 100.0, 0.0);
 	Cur = Evaluate(Clock());
 	SetActorLocationAndRotation(Cur.PosUE, Cur.RotUE, false, nullptr, ETeleportType::TeleportPhysics);
@@ -307,6 +322,7 @@ void ACarrierActor::BeginPlay()
 
 void ACarrierActor::PlaceWire(int32 W, const FVector& MidLocal)
 {
+	using namespace CarrierLayout;
 	for (int32 H = 0; H < 2; ++H)
 	{
 		const FVector2D End2 = LandPoint(WiresS[W], H == 0 ? -WireHalf : WireHalf);
@@ -321,6 +337,7 @@ void ACarrierActor::PlaceWire(int32 W, const FVector& MidLocal)
 
 void ACarrierActor::SetWirePull(int32 Wire, const FVector& HookLocal)
 {
+	using namespace CarrierLayout;
 	for (int32 W = 0; W < 4; ++W)
 	{
 		const FVector2D Mid = LandPoint(WiresS[W], 0.0);
@@ -330,11 +347,13 @@ void ACarrierActor::SetWirePull(int32 Wire, const FVector& HookLocal)
 
 void ACarrierActor::SetJbd(int32 CatIndex, bool bUp)
 {
+	using namespace CarrierLayout;
 	if (JbdTarget.IsValidIndex(CatIndex)) { JbdTarget[CatIndex] = bUp ? 52.0 : 0.0; }
 }
 
 void ACarrierActor::BuildLens()
 {
+	using namespace CarrierLayout;
 	UStaticMesh* Sph = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	UMaterialInterface* LM = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Carrier/Materials/M_CarrierLight.M_CarrierLight"));
 	USceneComponent* Lens = NewObject<USceneComponent>(this, TEXT("Iflols"));
@@ -359,7 +378,7 @@ void ACarrierActor::BuildLens()
 		LensLights.Add(C);
 		LensMids.Add(Mid);
 	};
-	for (int32 I = 0; I < LENS_CELLS; ++I) { Add(FVector(0.05, 0.0, (I - (LENS_CELLS - 1) * 0.5) * 0.2), 0.2); }   // 0..11 cells (bottom -> top)
+	for (int32 I = 0; I < Cv_LENS_CELLS; ++I) { Add(FVector(0.05, 0.0, (I - (Cv_LENS_CELLS - 1) * 0.5) * 0.2), 0.2); }   // 0..11 cells (bottom -> top)
 	for (int32 S = -1; S <= 1; S += 2)
 	{
 		for (int32 I = 0; I < 5; ++I) { Add(FVector(0.05, S * (0.9 + I * 0.42), 0.0), 0.2); }                   // 12..21 datum
@@ -373,6 +392,7 @@ void ACarrierActor::BuildLens()
 
 void ACarrierActor::SetIflols(double BallDevDeg, bool bBall, bool bWaveOff, bool bCut)
 {
+	using namespace CarrierLayout;
 	BallDev = BallDevDeg;
 	bBallOn = bBall;
 	bWaveOffOn = bWaveOff;
@@ -381,30 +401,31 @@ void ACarrierActor::SetIflols(double BallDevDeg, bool bBall, bool bWaveOff, bool
 
 void ACarrierActor::UpdateLens(double Dt)
 {
+	using namespace CarrierLayout;
 	LensTime += Dt;
 	if (LensMids.Num() < 30) { return; }
-	const int32 Cell = FMath::Clamp(FMath::RoundToInt((BallDev + LENS_RANGE) / (2.0 * LENS_RANGE) * (LENS_CELLS - 1)), 0, LENS_CELLS - 1);
-	const bool bOnLens = bBallOn && FMath::Abs(BallDev) <= LENS_RANGE + 0.05;
-	for (int32 I = 0; I < LENS_CELLS; ++I)
+	const int32 Cell = FMath::Clamp(FMath::RoundToInt((BallDev + Cv_LENS_RANGE) / (2.0 * Cv_LENS_RANGE) * (Cv_LENS_CELLS - 1)), 0, Cv_LENS_CELLS - 1);
+	const bool bOnLens = bBallOn && FMath::Abs(BallDev) <= Cv_LENS_RANGE + 0.05;
+	for (int32 I = 0; I < Cv_LENS_CELLS; ++I)
 	{
 		const bool bLit = bOnLens && I == Cell && !bWaveOffOn;
-		LensMids[I]->SetVectorParameterValue(TEXT("Color"), I <= 1 ? RED : AMBER);
+		LensMids[I]->SetVectorParameterValue(TEXT("Color"), I <= 1 ? Cv_RED : Cv_AMBER);
 		LensMids[I]->SetScalarParameterValue(TEXT("Intensity"), bLit ? 60.0f : 0.02f);
 	}
 	for (int32 I = 12; I < 22; ++I)
 	{
-		LensMids[I]->SetVectorParameterValue(TEXT("Color"), GREEN);
+		LensMids[I]->SetVectorParameterValue(TEXT("Color"), Cv_GREEN);
 		LensMids[I]->SetScalarParameterValue(TEXT("Intensity"), 40.0f);
 	}
 	const bool bFlash = bWaveOffOn && FMath::Fmod(LensTime, 0.5) < 0.3;
 	for (int32 I = 22; I < 28; ++I)
 	{
-		LensMids[I]->SetVectorParameterValue(TEXT("Color"), RED);
+		LensMids[I]->SetVectorParameterValue(TEXT("Color"), Cv_RED);
 		LensMids[I]->SetScalarParameterValue(TEXT("Intensity"), bFlash ? 90.0f : 0.02f);
 	}
 	for (int32 I = 28; I < 30; ++I)
 	{
-		LensMids[I]->SetVectorParameterValue(TEXT("Color"), GREEN);
+		LensMids[I]->SetVectorParameterValue(TEXT("Color"), Cv_GREEN);
 		LensMids[I]->SetScalarParameterValue(TEXT("Intensity"), bCutOn ? 60.0f : 0.02f);
 	}
 	// readability: the whole lens grows with the viewer's distance (min. apparent size), staying above the deck
@@ -423,6 +444,7 @@ void ACarrierActor::UpdateLens(double Dt)
 
 void ACarrierActor::BuildLights()
 {
+	using namespace CarrierLayout;
 	UStaticMesh* Sph = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	UMaterialInterface* LM = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Carrier/Materials/M_CarrierLight.M_CarrierLight"));
 	DeckLights = NewObject<UInstancedStaticMeshComponent>(this, TEXT("DeckLights"));
@@ -434,7 +456,7 @@ void ACarrierActor::BuildLights()
 	if (LM)
 	{
 		UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(LM, this);
-		Mid->SetVectorParameterValue(TEXT("Color"), WHITE);
+		Mid->SetVectorParameterValue(TEXT("Color"), Cv_WHITE);
 		Mid->SetScalarParameterValue(TEXT("Intensity"), 6.0f);
 		DeckLights->SetMaterial(0, Mid);
 	}
@@ -458,6 +480,7 @@ void ACarrierActor::BuildLights()
 
 void ACarrierActor::BuildParked()
 {
+	using namespace CarrierLayout;
 	// parked F-35Cs: body + gear parts at the gear-down pose, one ISM per mesh (Nanite body)
 	TArray<FTransform> Jets;
 	for (const FVector& P : ParkedJets)
@@ -491,9 +514,10 @@ void ACarrierActor::BuildParked()
 
 void ACarrierActor::BuildWake()
 {
+	using namespace CarrierLayout;
 	UMaterialInterface* WM = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Carrier/Materials/M_CarrierWake.M_CarrierWake"));
 	if (!WM) { return; }
-	for (int32 K = 0; K < WAKE_SEGS + 2; ++K)
+	for (int32 K = 0; K < Cv_WAKE_SEGS + 2; ++K)
 	{
 		UDecalComponent* D = NewObject<UDecalComponent>(this, *FString::Printf(TEXT("Wake%d"), K));
 		D->SetupAttachment(Collision);
@@ -512,13 +536,14 @@ void ACarrierActor::BuildWake()
 
 void ACarrierActor::UpdateWake()
 {
-	if (Wake.Num() < WAKE_SEGS + 2) { return; }
+	using namespace CarrierLayout;
+	if (Wake.Num() < Cv_WAKE_SEGS + 2) { return; }
 	const double T = Clock();
 	const FVector Up(0, 0, 1);
-	for (int32 K = 0; K < WAKE_SEGS; ++K)
+	for (int32 K = 0; K < Cv_WAKE_SEGS; ++K)
 	{
 		// stern positions of the recent past: the wake stays where the ship was
-		const double DA = K * WAKE_LEN, DB = (K + 1) * WAKE_LEN;
+		const double DA = K * Cv_WAKE_LEN, DB = (K + 1) * Cv_WAKE_LEN;
 		const FCarrierPose PA = Evaluate(T - DA / SpeedMs), PB = Evaluate(T - DB / SpeedMs);
 		const FVector SA = PA.PosUE + PA.RotUE.GetForwardVector() * (SternX * 100.0);
 		const FVector SB = PB.PosUE + PB.RotUE.GetForwardVector() * (SternX * 100.0);
@@ -529,8 +554,8 @@ void ACarrierActor::UpdateWake()
 		Wake[K]->SetWorldLocationAndRotation(FVector(Mid.X, Mid.Y, 0.0), FRotationMatrix::MakeFromXZ(-Up, Along.GetSafeNormal()).Rotator());
 		Wake[K]->DecalSize = FVector(450.0, Half, Len * 0.5 + 900.0);
 		Wake[K]->MarkRenderStateDirty();
-		WakeMids[K]->SetScalarParameterValue(TEXT("Strength"), float(FMath::Lerp(1.15, 0.12, double(K) / (WAKE_SEGS - 1))));
-		WakeMids[K]->SetScalarParameterValue(TEXT("Spread"), float(0.2 + 0.6 * K / (WAKE_SEGS - 1.0)));
+		WakeMids[K]->SetScalarParameterValue(TEXT("Strength"), float(FMath::Lerp(1.15, 0.12, double(K) / (Cv_WAKE_SEGS - 1))));
+		WakeMids[K]->SetScalarParameterValue(TEXT("Spread"), float(0.2 + 0.6 * K / (Cv_WAKE_SEGS - 1.0)));
 	}
 	// bow waves: a foam band along each side of the forward hull, splaying out
 	const FVector Fwd = Cur.RotUE.GetForwardVector();
@@ -541,16 +566,17 @@ void ACarrierActor::UpdateWake()
 		const double Sg = S == 0 ? -1.0 : 1.0;
 		const FVector Dir = (F2 * FMath::Cos(FMath::DegreesToRadians(12.0)) - R2 * Sg * FMath::Sin(FMath::DegreesToRadians(12.0))).GetSafeNormal();
 		const FVector C = Cur.PosUE + F2 * 9000.0 + R2 * Sg * 2600.0;
-		Wake[WAKE_SEGS + S]->SetWorldLocationAndRotation(FVector(C.X, C.Y, 0.0), FRotationMatrix::MakeFromXZ(-Up, Dir).Rotator());
-		Wake[WAKE_SEGS + S]->DecalSize = FVector(450.0, 700.0, 9000.0);
-		Wake[WAKE_SEGS + S]->MarkRenderStateDirty();
-		WakeMids[WAKE_SEGS + S]->SetScalarParameterValue(TEXT("Strength"), 0.75f);
-		WakeMids[WAKE_SEGS + S]->SetScalarParameterValue(TEXT("Spread"), 0.3f);
+		Wake[Cv_WAKE_SEGS + S]->SetWorldLocationAndRotation(FVector(C.X, C.Y, 0.0), FRotationMatrix::MakeFromXZ(-Up, Dir).Rotator());
+		Wake[Cv_WAKE_SEGS + S]->DecalSize = FVector(450.0, 700.0, 9000.0);
+		Wake[Cv_WAKE_SEGS + S]->MarkRenderStateDirty();
+		WakeMids[Cv_WAKE_SEGS + S]->SetScalarParameterValue(TEXT("Strength"), 0.75f);
+		WakeMids[Cv_WAKE_SEGS + S]->SetScalarParameterValue(TEXT("Spread"), 0.3f);
 	}
 }
 
 void ACarrierActor::UpdateDevices(double Dt)
 {
+	using namespace CarrierLayout;
 	for (int32 K = 0; K < Jbds.Num(); ++K)
 	{
 		JbdAng[K] = OsrMath::MoveToward(JbdAng[K], JbdTarget[K], 22.0 * Dt);   // ~2.4 s to raise
@@ -576,6 +602,7 @@ void ACarrierActor::UpdateDevices(double Dt)
 
 void ACarrierActor::Tick(float DeltaSeconds)
 {
+	using namespace CarrierLayout;
 	Super::Tick(DeltaSeconds);
 	Cur = Evaluate(Clock());
 	SetActorLocationAndRotation(Cur.PosUE, Cur.RotUE, false, nullptr, ETeleportType::None);

@@ -3,7 +3,7 @@
 
 namespace
 {
-	const TCHAR* PH_NAME[4] = {TEXT("X"), TEXT("IM"), TEXT("IC"), TEXT("AR")};
+	const TCHAR* Lso_PH_NAME[4] = {TEXT("X"), TEXT("IM"), TEXT("IC"), TEXT("AR")};
 }
 
 void FLsoMonitor::Reset()
@@ -124,8 +124,8 @@ ELsoGrade FLsoMonitor::GradeTrap(int32 Wire)
 		auto Tag = [&](double V, const TCHAR* Name, double Small, double Big)
 		{
 			if (V < Small) { return; }
-			if (V < Big) { C += FString::Printf(TEXT("(%s)%s "), Name, PH_NAME[I]); }
-			else { C += FString::Printf(TEXT("%s%s "), Name, PH_NAME[I]); }
+			if (V < Big) { C += FString::Printf(TEXT("(%s)%s "), Name, Lso_PH_NAME[I]); }
+			else { C += FString::Printf(TEXT("%s%s "), Name, Lso_PH_NAME[I]); }
 		};
 		Tag(P.MaxHi, TEXT("HI"), 0.35, 0.7);
 		Tag(P.MaxLo, TEXT("LO"), 0.3, 0.6);

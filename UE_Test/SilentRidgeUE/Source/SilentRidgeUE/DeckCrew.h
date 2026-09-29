@@ -29,12 +29,12 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** Commands a signal crew member: walk to a carrier-local spot (m), face a yaw (deg) or a point, show a signal. */
-	void Command(ECrewRole Role, const FVector2D& Pos, double YawDeg, ECrewSignal Signal);
-	void Face(ECrewRole Role, const FVector2D& LookAt);
+	void Command(ECrewRole InRole, const FVector2D& Pos, double YawDeg, ECrewSignal Signal);
+	void Face(ECrewRole InRole, const FVector2D& LookAt);
 	/** Returns the member's carrier-local position (m). */
-	FVector2D PositionOf(ECrewRole Role) const;
+	FVector2D PositionOf(ECrewRole InRole) const;
 	/** Home positions for the launch crew around a catapult (used when idle). */
-	static void CatHome(int32 CatIndex, ECrewRole Role, FVector2D& OutPos, double& OutYaw);
+	static void CatHome(int32 CatIndex, ECrewRole InRole, FVector2D& OutPos, double& OutYaw);
 	/** Launch signal timeline started (shooter): seconds since. */
 	void StartLaunchSignal();
 
@@ -62,9 +62,9 @@ private:
 	double Time = 0.0;
 	FTransform HelmetRel;
 
-	FMember* Find(ECrewRole Role);
-	const FMember* Find(ECrewRole Role) const;
-	void Add(ECrewRole Role, const FVector2D& Pos, double Yaw, const FLinearColor& Jersey, bool bPoseable, const FLinearColor& Pants = FLinearColor(0.02f, 0.03f, 0.07f));
+	FMember* Find(ECrewRole InRole);
+	const FMember* Find(ECrewRole InRole) const;
+	void Add(ECrewRole InRole, const FVector2D& Pos, double Yaw, const FLinearColor& Jersey, bool bPoseable, const FLinearColor& Pants = FLinearColor(0.02f, 0.03f, 0.07f));
 	void ApplySignal(FMember& M, double Dt);
 	void AimArm(UPoseableMeshComponent* P, bool bRight, const FVector& UpperDir, const FVector& ForeDir);
 	void Lean(UPoseableMeshComponent* P, double Deg);

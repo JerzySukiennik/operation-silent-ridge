@@ -18,22 +18,22 @@ using namespace OsrMath;
 
 namespace
 {
-	constexpr double SIM_DT = 1.0 / 120.0;
-	constexpr double KT = 0.514444;
-	constexpr double G0 = 9.80665;
-	const double GEAR_H = -CarrierF35Anim::MainWheelL.Z * 0.01;                                   // origin above the deck on the wheels, m
-	const double NOSE_X = CarrierF35Anim::NoseWheel.X * 0.01;                                     // nose gear ahead of the origin, m
-	const double WHEELBASE = (CarrierF35Anim::NoseWheel.X - CarrierF35Anim::MainWheelL.X) * 0.01;
-	constexpr double VEND_AIR = 150.0 * KT;                                                       // end-of-stroke airspeed
-	constexpr double DFP_GS = 3.5;
-	constexpr double HOOK_DOWN_AIR = 35.0;
+	constexpr double Ops_SIM_DT = 1.0 / 120.0;
+	constexpr double Ops_KT = 0.514444;
+	constexpr double Ops_G0 = 9.80665;
+	const double Ops_GEAR_H = -CarrierF35Anim::MainWheelL.Z * 0.01;                                   // origin above the deck on the wheels, m
+	const double Ops_NOSE_X = CarrierF35Anim::NoseWheel.X * 0.01;                                     // nose gear ahead of the origin, m
+	const double Ops_WHEELBASE = (CarrierF35Anim::NoseWheel.X - CarrierF35Anim::MainWheelL.X) * 0.01;
+	constexpr double Ops_VEND_AIR = 150.0 * Ops_KT;                                                       // end-of-stroke airspeed
+	constexpr double Ops_DFP_GS = 3.5;
+	constexpr double Ops_HOOK_DOWN_AIR = 35.0;
 
-	FVector Fwd2(double YawDeg) { const double A = FMath::DegreesToRadians(YawDeg); return FVector(FMath::Cos(A), FMath::Sin(A), 0.0); }
-	FVector2D F2(double YawDeg) { const double A = FMath::DegreesToRadians(YawDeg); return FVector2D(FMath::Cos(A), FMath::Sin(A)); }
-	FVector2D CatDir(int32 C) { return F2(CarrierLayout::Cats[C].HdgDeg); }
-	FVector2D CatStart(int32 C) { return FVector2D(CarrierLayout::Cats[C].X, CarrierLayout::Cats[C].Y); }
+	FVector Ops_Fwd2(double YawDeg) { const double A = FMath::DegreesToRadians(YawDeg); return FVector(FMath::Cos(A), FMath::Sin(A), 0.0); }
+	FVector2D Ops_F2(double YawDeg) { const double A = FMath::DegreesToRadians(YawDeg); return FVector2D(FMath::Cos(A), FMath::Sin(A)); }
+	FVector2D Ops_CatDir(int32 C) { return Ops_F2(CarrierLayout::Cats[C].HdgDeg); }
+	FVector2D Ops_CatStart(int32 C) { return FVector2D(CarrierLayout::Cats[C].X, CarrierLayout::Cats[C].Y); }
 	// jet-local check points (UE cm): nose, tail, wingtips, belly, nozzle
-	const FVector CRASH_PTS[] = {FVector(830, 0, 0), FVector(-700, 0, 60), FVector(-150, -650, -20), FVector(-150, 650, -20), FVector(0, 0, -140), FVector(-583, 0, -33)};
+	const FVector Ops_CRASH_PTS[] = {FVector(830, 0, 0), FVector(-700, 0, 60), FVector(-150, -650, -20), FVector(-150, 650, -20), FVector(0, 0, -140), FVector(-583, 0, -33)};
 }
 
 UCarrierJetOps::UCarrierJetOps()
@@ -110,10 +110,10 @@ void UCarrierJetOps::UpdateParts(double Dt)
 	double HookTarget = 0.0;
 	if (bHookDown)
 	{
-		HookTarget = HOOK_DOWN_AIR;
+		HookTarget = Ops_HOOK_DOWN_AIR;
 		if (OnDeck())
 		{
-			const double Hp = (CarrierF35Anim::HookPivot.Z * 0.01 + GEAR_H);
+			const double Hp = (CarrierF35Anim::HookPivot.Z * 0.01 + Ops_GEAR_H);
 			HookTarget = FMath::Clamp(FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(Hp / (CarrierF35Anim::HookArm * 0.01), 0.0, 1.0))) - Pitch, 0.0, 60.0);
 		}
 	}
@@ -153,7 +153,7 @@ FVector UCarrierJetOps::HookTipLocal() const
 FVector2D UCarrierJetOps::LadderPoint() const
 {
 	// boarding ladder on the left side, below the cockpit
-	const FVector2D F = F2(Yaw), R(-F.Y, F.X);
+	const FVector2D F = Ops_F2(Yaw), R(-F.Y, F.X);
 	return Pos + F * 3.6 - R * 2.4;
 }
 
@@ -227,11 +227,11 @@ void UCarrierJetOps::PlaceOnApproach(double RangeM, double SpeedMs)
 	const double LandYaw = Carrier->Pose().YawDeg + LandHdgDeg;
 	const FQuat Yq = FRotator(0.0, LandYaw, 0.0).Quaternion();
 	const FVector TdW = Carrier->LocalToUE(FVector(Td.X, Td.Y, DeckZ));
-	const FVector HookW = TdW + Yq.RotateVector(FVector(-RangeM, 0.0, RangeM * FMath::Tan(FMath::DegreesToRadians(DFP_GS)))) * 100.0;
+	const FVector HookW = TdW + Yq.RotateVector(FVector(-RangeM, 0.0, RangeM * FMath::Tan(FMath::DegreesToRadians(Ops_DFP_GS)))) * 100.0;
 	const double Gamma = -2.9, Aoa = FLsoMonitor::OnSpeedAoa;
 	const FQuat R = FRotator(Gamma + Aoa, LandYaw, 0.0).Quaternion();
 	bHookDown = true;
-	HookAngle = HOOK_DOWN_AIR;
+	HookAngle = Ops_HOOK_DOWN_AIR;
 	const double A = FMath::DegreesToRadians(HookAngle);
 	const FVector TipJ = CarrierF35Anim::HookPivot + FVector(-FMath::Cos(A), 0.0, -FMath::Sin(A)) * CarrierF35Anim::HookArm;
 	const FVector OriginW = HookW - R.RotateVector(TipJ);
@@ -325,7 +325,7 @@ void UCarrierJetOps::ApplyDeckPose(double Dt)
 	FF35FlightModel& M = Jet->Model;
 	M.Position = AOsrJetPawn::FromUE(W.GetLocation());
 	M.Orientation = AOsrJetPawn::LookingAt(AOsrJetPawn::DirToUE(Q.GetForwardVector()), AOsrJetPawn::DirToUE(Q.GetUpVector()));
-	M.Velocity = Carrier->VelocityGodot() + AOsrJetPawn::DirToUE(Carrier->Xform().TransformVector(Fwd2(Yaw))) * Speed;
+	M.Velocity = Carrier->VelocityGodot() + AOsrJetPawn::DirToUE(Carrier->Xform().TransformVector(Ops_Fwd2(Yaw))) * Speed;
 	M.Rates = FVector::ZeroVector;
 	if (!bManned)
 	{
@@ -341,7 +341,7 @@ void UCarrierJetOps::ApplyDeckPose(double Dt)
 void UCarrierJetOps::PostInterpolate()
 {
 	if (!OnDeck()) { return; }
-	const double A = FMath::Clamp(Accum / SIM_DT, 0.0, 1.0);
+	const double A = FMath::Clamp(Accum / Ops_SIM_DT, 0.0, 1.0);
 	const FVector2D P = FMath::Lerp(FVector2D(PrevL.X, PrevL.Y), FVector2D(CurL.X, CurL.Y), A);
 	const double Yw = PrevL.Z + FMath::FindDeltaAngleDegrees(PrevL.Z, CurL.Z) * A;
 	const FTransform W = LocalJetTransform(P, Yw, FMath::Lerp(PrevPitch, CurPitch, A)) * Carrier->Xform();
@@ -369,12 +369,12 @@ void UCarrierJetOps::Release(const FVector& VelLocalMs, double PitchDeg)
 void UCarrierJetOps::CheckHookup()
 {
 	using namespace CarrierLayout;
-	const FVector2D F = F2(Yaw);
-	const FVector2D Nose = Pos + F * NOSE_X;
+	const FVector2D F = Ops_F2(Yaw);
+	const FVector2D Nose = Pos + F * Ops_NOSE_X;
 	for (int32 C = 0; C < UE_ARRAY_COUNT(Cats); ++C)
 	{
-		const FVector2D D = CatDir(C), N(-D.Y, D.X);
-		const FVector2D R = Nose - CatStart(C);
+		const FVector2D D = Ops_CatDir(C), N(-D.Y, D.X);
+		const FVector2D R = Nose - Ops_CatStart(C);
 		const double Along = FVector2D::DotProduct(R, D), Lat = FVector2D::DotProduct(R, N);
 		if (Along > -7.0 && Along < 1.5 && FMath::Abs(Lat) < 2.4 && FMath::Abs(FMath::FindDeltaAngleDegrees(Yaw, Cats[C].HdgDeg)) < 15.0 && Speed < 4.5)
 		{
@@ -402,13 +402,13 @@ void UCarrierJetOps::DeckStep(double Dt)
 		const double Steer = bManned ? FMath::Clamp(In.Yaw + In.Roll * 0.8, -1.0, 1.0) * SteerScale : 0.0;
 		const double MaxSteer = Lerp(55.0, 7.0, Smoothstep(2.0, 22.0, FMath::Abs(Speed)));
 		const double Delta = FMath::DegreesToRadians(Steer * MaxSteer);
-		double A = M.Thrust / Mass - 0.015 * G0;
+		double A = M.Thrust / Mass - 0.015 * Ops_G0;
 		const double Air = Speed + ACarrierActor::SpeedMs * FMath::Cos(FMath::DegreesToRadians(Yaw));
 		A -= 0.5 * M.Rho * Air * FMath::Abs(Air) * 62.1 * 0.12 / Mass;
 		if (In.bBrake && bManned) { A -= 5.5; }
 		Speed = FMath::Max(0.0, Speed + A * Dt);
-		Yaw += FMath::RadiansToDegrees(Speed * FMath::Tan(Delta) / WHEELBASE) * Dt;
-		Pos += F2(Yaw) * Speed * Dt;
+		Yaw += FMath::RadiansToDegrees(Speed * FMath::Tan(Delta) / Ops_WHEELBASE) * Dt;
+		Pos += Ops_F2(Yaw) * Speed * Dt;
 	};
 	switch (State)
 	{
@@ -420,17 +420,17 @@ void UCarrierJetOps::DeckStep(double Dt)
 		const FVector2D Before = Pos;
 		Roll(1.0);
 		// island / JBD panels stop the jet (no damage model on deck yet)
-		const FVector2D Nose = Pos + F2(Yaw) * 8.0;
+		const FVector2D Nose = Pos + Ops_F2(Yaw) * 8.0;
 		if (Nose.X > Island.Min.X - 1.0 && Nose.X < Island.Max.X + 1.0 && Nose.Y > Island.Min.Y - 1.0) { Pos = Before; Speed = 0.0; }
-		if (!ACarrierActor::InDeckOutline(Pos.X, Pos.Y)) { Release(Fwd2(Yaw) * Speed, 0.0); return; }
+		if (!ACarrierActor::InDeckOutline(Pos.X, Pos.Y)) { Release(Ops_Fwd2(Yaw) * Speed, 0.0); return; }
 		CheckHookup();
 		break;
 	}
 	case EDeckState::Hookup:
 	{
-		const FVector2D D = CatDir(HookupCat);
+		const FVector2D D = Ops_CatDir(HookupCat);
 		const double K = Smoothstep(0.0, 2.2, StateT);
-		Pos = FMath::Lerp(HookupFromPos, CatStart(HookupCat) - D * NOSE_X, K);
+		Pos = FMath::Lerp(HookupFromPos, Ops_CatStart(HookupCat) - D * Ops_NOSE_X, K);
 		Yaw = HookupFromYaw + FMath::FindDeltaAngleDegrees(HookupFromYaw, Cats[HookupCat].HdgDeg) * K;
 		Speed = 0.0;
 		if (StateT > 2.6)
@@ -468,24 +468,24 @@ void UCarrierJetOps::DeckStep(double Dt)
 	case EDeckState::Launch:
 	{
 		const FCat& C = Cats[HookupCat];
-		const double VEndRel = VEND_AIR - ACarrierActor::SpeedMs * FMath::Cos(FMath::DegreesToRadians(C.HdgDeg));
+		const double VEndRel = Ops_VEND_AIR - ACarrierActor::SpeedMs * FMath::Cos(FMath::DegreesToRadians(C.HdgDeg));
 		const double A = VEndRel * VEndRel / (2.0 * C.Stroke);
 		CatV += A * Dt;
 		CatS += CatV * Dt;
 		LaunchStrokeS += Dt;
-		const FVector2D D = CatDir(HookupCat);
-		Pos = CatStart(HookupCat) + D * (FMath::Min(CatS, C.Stroke) - NOSE_X);
+		const FVector2D D = Ops_CatDir(HookupCat);
+		Pos = Ops_CatStart(HookupCat) + D * (FMath::Min(CatS, C.Stroke) - Ops_NOSE_X);
 		Yaw = C.HdgDeg;
 		Speed = CatV;
 		Pitch = FMath::Min(Pitch + Dt * 1.5, 2.0);          // nose strut extends at the end of the stroke
 		if (CatS >= C.Stroke)
 		{
 			const int32 Cat = HookupCat;
-			Release(Fwd2(Yaw) * CatV, 6.0);
+			Release(Ops_Fwd2(Yaw) * CatV, 6.0);
 			Pitch = 0.0;
 			Jet->Model.Rates.X = FMath::DegreesToRadians(3.0);
-			LaunchEndKt = Jet->Model.Tas / KT;
-			UE_LOG(LogTemp, Display, TEXT("REPORT catapult_launch cat=%d stroke_s=%.2f end_kt=%.0f accel_g=%.1f"), Cat + 1, LaunchStrokeS, LaunchEndKt, A / G0);
+			LaunchEndKt = Jet->Model.Tas / Ops_KT;
+			UE_LOG(LogTemp, Display, TEXT("REPORT catapult_launch cat=%d stroke_s=%.2f end_kt=%.0f accel_g=%.1f"), Cat + 1, LaunchStrokeS, LaunchEndKt, A / Ops_G0);
 			Carrier->OnCatapultLaunched.Broadcast(Jet);
 			CatIndex = -1;
 			FTimerHandle H;
@@ -501,13 +501,13 @@ void UCarrierJetOps::DeckStep(double Dt)
 		if (!ACarrierActor::InDeckOutline(Pos.X, Pos.Y))
 		{
 			// off the angled deck end without a wire: bolter (or a deck run-off at low speed)
-			Release(Fwd2(Yaw) * Speed, 7.0);
+			Release(Ops_Fwd2(Yaw) * Speed, 7.0);
 			Jet->Model.Rates.X = FMath::DegreesToRadians(4.0);
 			Lso.Bolter(Now());
 			LastGrade = ELsoGrade::Bolter;
 			ResultT = Now();
 			ResultText = TEXT("BOLTER");
-			UE_LOG(LogTemp, Display, TEXT("REPORT carrier_bolter t=%.1f speed_kt=%.0f"), Now(), Jet->Model.Tas / KT);
+			UE_LOG(LogTemp, Display, TEXT("REPORT carrier_bolter t=%.1f speed_kt=%.0f"), Now(), Jet->Model.Tas / Ops_KT);
 			Carrier->OnBolter.Broadcast(Jet);
 			return;
 		}
@@ -518,9 +518,9 @@ void UCarrierJetOps::DeckStep(double Dt)
 		Pitch = MoveToward(Pitch, 0.0, 10.0 * Dt);
 		const double Ramp = FMath::Min(StateT / 0.25, 1.0);
 		const double Acc = ArrestAcc * Ramp;
-		MaxDecelG = FMath::Max(MaxDecelG, Acc / G0);
+		MaxDecelG = FMath::Max(MaxDecelG, Acc / Ops_G0);
 		Speed = FMath::Max(0.0, Speed - Acc * Dt);
-		Pos += F2(Yaw) * Speed * Dt;
+		Pos += Ops_F2(Yaw) * Speed * Dt;
 		Carrier->SetWirePull(Wire, HookTipLocal());
 		if (Speed <= 0.0)
 		{
@@ -580,7 +580,7 @@ void UCarrierJetOps::Touchdown(const FVector& VelRelLocal)
 	Pos = FVector2D(O.X, O.Y);
 	Yaw = FMath::RadiansToDegrees(FMath::Atan2(FL.Y, FL.X));
 	Pitch = FMath::Clamp(FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(FL.Z, -1.0, 1.0))), -2.0, 15.0);
-	Speed = FMath::Max(0.0, FVector::DotProduct(VelRelLocal, Fwd2(Yaw)));
+	Speed = FMath::Max(0.0, FVector::DotProduct(VelRelLocal, Ops_Fwd2(Yaw)));
 	CurL = PrevL = FVector(Pos.X, Pos.Y, Yaw);
 	CurPitch = PrevPitch = Pitch;
 	TouchSinkMs = -VelRelLocal.Z;
@@ -588,7 +588,7 @@ void UCarrierJetOps::Touchdown(const FVector& VelRelLocal)
 	bDfp = false;
 	if (bManned || Jet->bAutopilot) { Jet->Controls.SetLever(1.0); Jet->AutopilotLever = 1.0; }   // MIL on touchdown (bolter insurance)
 	Play(TEXT("gear_clunk"), 1.4f);
-	UE_LOG(LogTemp, Display, TEXT("REPORT carrier_touchdown t=%.1f sink_ms=%.1f speed_rel_kt=%.0f s=%.0f lat=%.1f"), Now(), TouchSinkMs, Speed / KT,
+	UE_LOG(LogTemp, Display, TEXT("REPORT carrier_touchdown t=%.1f sink_ms=%.1f speed_rel_kt=%.0f s=%.0f lat=%.1f"), Now(), TouchSinkMs, Speed / Ops_KT,
 		ACarrierActor::ToLanding(Pos).X, ACarrierActor::ToLanding(Pos).Y);
 }
 
@@ -600,7 +600,7 @@ void UCarrierJetOps::Engage(int32 W)
 	MaxDecelG = 0.0;
 	Jet->Controls.SetLever(1.0);
 	Play(TEXT("wire_trap"), 1.0f);
-	UE_LOG(LogTemp, Display, TEXT("REPORT carrier_wire_engaged wire=%d v_rel_kt=%.0f"), W + 1, Speed / KT);
+	UE_LOG(LogTemp, Display, TEXT("REPORT carrier_wire_engaged wire=%d v_rel_kt=%.0f"), W + 1, Speed / Ops_KT);
 	SetState(EDeckState::Arrest);
 }
 
@@ -661,7 +661,7 @@ void UCarrierJetOps::PostStep(double Dt)
 		}
 	}
 	// ramp strike / hull / island / belly landing
-	for (const FVector& Cp : CRASH_PTS)
+	for (const FVector& Cp : Ops_CRASH_PTS)
 	{
 		const FVector L = PointLocal(Cp);
 		const bool bBelly = GearPhase < 0.95 && L.Z <= DeckZ && ACarrierActor::InDeckOutline(L.X, L.Y);
@@ -692,13 +692,13 @@ void UCarrierJetOps::UpdateDfp(double Dt)
 	const FVector Vh = FVector(M.Velocity.X, 0.0, M.Velocity.Z).GetSafeNormal();
 	const double ShipAlong = FVector::DotProduct(Carrier->VelocityGodot(), Vh);
 	const double Closure = FMath::Max(V * FMath::Cos(Gamma) - ShipAlong, 20.0);
-	const double GammaRef = -FMath::Atan(Closure * FMath::Tan(FMath::DegreesToRadians(DFP_GS)) / V);
+	const double GammaRef = -FMath::Atan(Closure * FMath::Tan(FMath::DegreesToRadians(Ops_DFP_GS)) / V);
 	// stick = glideslope command: neutral holds the ship-referenced 3.5 deg, +-1 = -+3 deg
 	const double GammaCmd = GammaRef + Jet->Controls.Input.Pitch * FMath::DegreesToRadians(3.0);
 	const double Cb = FMath::Cos(M.Bank);
 	const double Comp = Cb >= 0.5 ? 1.0 / Cb : 4.0 * Cb;
 	const double N0 = FMath::Cos(Gamma) * Comp;
-	const double NDes = N0 + V / G0 * (1.7 * (GammaCmd - Gamma)) - M.Rates.X * V / G0 * 0.15;
+	const double NDes = N0 + V / Ops_G0 * (1.7 * (GammaCmd - Gamma)) - M.Rates.X * V / Ops_G0 * 0.15;
 	const double NHi = 4.0, NLo = -1.0;
 	const double S = NDes >= N0 ? (NDes - N0) / (NHi - N0) : (NDes - N0) / (N0 - NLo);
 	M.InPitch = FMath::Clamp(S, -1.0, 1.0);
@@ -723,11 +723,11 @@ void UCarrierJetOps::UpdateLso(double Dt)
 		const FVector2D Td = ACarrierActor::LandPoint(TouchdownS, 0.0);
 		const FVector TipW = Carrier->LocalToUE(HookTipLocal());
 		const FVector S = Carrier->UEToStabilized(TipW, FVector(Td.X, Td.Y, DeckZ));
-		const FVector2D D = F2(LandHdgDeg), N(-D.Y, D.X);
+		const FVector2D D = Ops_F2(LandHdgDeg), N(-D.Y, D.X);
 		const double Along = S.X * D.X + S.Y * D.Y, Lat = S.X * N.X + S.Y * N.Y;
 		FLsoInput In;
 		In.RangeM = -Along;
-		In.GsDevDeg = FMath::RadiansToDegrees(FMath::Atan2(S.Z, FMath::Max(In.RangeM, 1.0))) - DFP_GS;
+		In.GsDevDeg = FMath::RadiansToDegrees(FMath::Atan2(S.Z, FMath::Max(In.RangeM, 1.0))) - Ops_DFP_GS;
 		In.LineupM = Lat;
 		In.AoaDeg = FMath::RadiansToDegrees(Jet->Model.Alpha);
 		In.FuelKlb = Jet->Model.Fuel * 2.20462 / 1000.0;
@@ -767,15 +767,15 @@ void UCarrierJetOps::DirectCrew()
 {
 	ADeckCrew* Crew = Carrier ? Carrier->Crew.Get() : nullptr;
 	if (!Crew) { return; }
-	const FVector2D F = F2(Yaw);
-	const FVector2D Nose = Pos + F * NOSE_X;
+	const FVector2D F = Ops_F2(Yaw);
+	const FVector2D Nose = Pos + F * Ops_NOSE_X;
 	FVector2D P; double Y;
 	const int32 Cat = State == EDeckState::Hookup || State == EDeckState::OnCat || State == EDeckState::Launch ? HookupCat : 0;
 	if (State == EDeckState::Taxi && bManned)
 	{
 		// yellow shirt: stands ahead of the jet and brings it to the lead-in of cat 1
-		const FVector2D D = CatDir(0);
-		const FVector2D Target = CatStart(0) - D * 3.0;
+		const FVector2D D = Ops_CatDir(0);
+		const FVector2D Target = Ops_CatStart(0) - D * 3.0;
 		const FVector2D To = Target - Nose;
 		const double Dist = To.Size();
 		const double Cross = F.X * To.Y - F.Y * To.X;
@@ -800,8 +800,8 @@ void UCarrierJetOps::DirectCrew()
 	else if (State == EDeckState::Hookup || State == EDeckState::OnCat || State == EDeckState::Launch)
 	{
 		ADeckCrew::CatHome(Cat, ECrewRole::Director, P, Y);
-		const FVector2D D = CatDir(Cat), N(-D.Y, D.X);
-		Crew->Command(ECrewRole::Director, CatStart(Cat) + D * 9.0 + N * 11.0, 0.0, State == EDeckState::Hookup ? ECrewSignal::Stop : ECrewSignal::Idle);
+		const FVector2D D = Ops_CatDir(Cat), N(-D.Y, D.X);
+		Crew->Command(ECrewRole::Director, Ops_CatStart(Cat) + D * 9.0 + N * 11.0, 0.0, State == EDeckState::Hookup ? ECrewSignal::Stop : ECrewSignal::Idle);
 		Crew->Face(ECrewRole::Director, Nose);
 	}
 	else
@@ -814,10 +814,10 @@ void UCarrierJetOps::DirectCrew()
 	{
 		ADeckCrew::CatHome(Cat, R, P, Y);
 		ECrewSignal S = ECrewSignal::Idle;
-		const FVector2D D = CatDir(Cat), N(-D.Y, D.X);
+		const FVector2D D = Ops_CatDir(Cat), N(-D.Y, D.X);
 		if (State == EDeckState::Hookup && (R == ECrewRole::Hook1 || R == ECrewRole::Hook2))
 		{
-			P = CatStart(Cat) - D * 1.0 + N * (R == ECrewRole::Hook1 ? 1.6 : -1.6);
+			P = Ops_CatStart(Cat) - D * 1.0 + N * (R == ECrewRole::Hook1 ? 1.6 : -1.6);
 			S = ECrewSignal::Crouch;
 		}
 		else if (State == EDeckState::OnCat)

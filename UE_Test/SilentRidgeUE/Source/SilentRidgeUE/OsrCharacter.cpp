@@ -67,10 +67,10 @@ AOsrCharacter::AOsrCharacter()
 void AOsrCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	USkeletalMesh* Mesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple"));
-	if (Mesh)
+	USkeletalMesh* SkMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple"));
+	if (SkMesh)
 	{
-		GetMesh()->SetSkeletalMesh(Mesh);
+		GetMesh()->SetSkeletalMesh(SkMesh);
 		if (UClass* Abp = LoadClass<UAnimInstance>(nullptr, TEXT("/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C")))
 		{
 			GetMesh()->SetAnimInstanceClass(Abp);
@@ -86,9 +86,9 @@ void AOsrCharacter::BeginPlay()
 			Mid->SetScalarParameterValue(TEXT("Stripes"), 0.0f);
 			Mid->SetScalarParameterValue(TEXT("GSuit"), 1.0f);
 			Mid->SetScalarParameterValue(TEXT("Harness"), 1.0f);
-			for (int32 I = 0; I < Mesh->GetMaterials().Num(); ++I) { GetMesh()->SetMaterial(I, Mid); }
+			for (int32 I = 0; I < SkMesh->GetMaterials().Num(); ++I) { GetMesh()->SetMaterial(I, Mid); }
 		}
-		const FReferenceSkeleton& Ref = Mesh->GetRefSkeleton();
+		const FReferenceSkeleton& Ref = SkMesh->GetRefSkeleton();
 		const int32 Hi = Ref.FindBoneIndex(TEXT("head"));
 		if (Hi != INDEX_NONE)
 		{
