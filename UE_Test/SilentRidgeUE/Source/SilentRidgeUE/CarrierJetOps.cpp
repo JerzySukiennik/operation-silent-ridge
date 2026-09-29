@@ -8,6 +8,7 @@
 #include "OsrPadInput.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Materials/MaterialInterface.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
@@ -78,6 +79,21 @@ void UCarrierJetOps::BuildParts()
 		if (UStaticMesh* M = LoadObject<UStaticMesh>(nullptr, *FString::Printf(TEXT("/Game/Carrier/F35/%s.%s"), *N, *N))) { C->SetStaticMesh(M); }
 		C->RegisterComponent();
 		GearParts.Add(C);
+	}
+	// launch bar (F-35C nose gear): a bar from the nose axle forward, down onto the shuttle when hooked up
+	if (GearParts.IsValidIndex(1))
+	{
+		const CarrierF35Anim::FKey& Kd = CarrierF35Anim::Keys[1][CarrierF35Anim::NumSamples - 1];
+		const FTransform Down(FMatrix(FVector(Kd.X[0], Kd.X[1], Kd.X[2]), FVector(Kd.Y[0], Kd.Y[1], Kd.Y[2]), FVector(Kd.Z[0], Kd.Z[1], Kd.Z[2]), FVector(Kd.L[0], Kd.L[1], Kd.L[2])));
+		const FVector Axle = CarrierF35Anim::NoseWheel + FVector(0.0, 0.0, 32.0);
+		LaunchBar = NewObject<UStaticMeshComponent>(Jet);
+		LaunchBar->SetupAttachment(GearParts[1]);
+		LaunchBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"))) { LaunchBar->SetStaticMesh(Cube); }
+		if (UMaterialInterface* HM = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Carrier/Materials/M_Hook.M_Hook"))) { LaunchBar->SetMaterial(0, HM); }
+		const FTransform BarJet(FRotator(-14.0, 0.0, 0.0), Axle + FVector(55.0, 0.0, -14.0), FVector(1.1, 0.08, 0.06));
+		LaunchBar->SetRelativeTransform(BarJet.GetRelativeTransform(Down));
+		LaunchBar->RegisterComponent();
 	}
 	Hook = NewObject<UStaticMeshComponent>(Jet);
 	Hook->SetupAttachment(Body);

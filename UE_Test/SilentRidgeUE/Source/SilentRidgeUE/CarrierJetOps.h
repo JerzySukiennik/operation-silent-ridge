@@ -76,6 +76,7 @@ private:
 	UPROPERTY() TObjectPtr<ACarrierActor> Carrier;
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> GearParts;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Hook;
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> LaunchBar;
 	UPROPERTY() TMap<FName, TObjectPtr<USoundBase>> Sounds;
 
 	// deck kinematics (carrier-local)

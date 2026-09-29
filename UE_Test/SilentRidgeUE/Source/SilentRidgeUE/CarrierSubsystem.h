@@ -43,6 +43,7 @@ private:
 	bool bAutotest = false;
 	double SwitchT = -1.0;
 	int32 SwitchTo = 0;   // 1 = into the jet, 2 = out of the jet
+	int32 SpawnBroadcastIn = -1;   // frames until the first OnSpawnedOnDeck (listeners bind during the first frames)
 	AOsrCharacter* SpawnWalker(const FVector& LocalM, double YawDeg);
 	void SetupDeck();
 	void Fade(double From, double To, double Time);

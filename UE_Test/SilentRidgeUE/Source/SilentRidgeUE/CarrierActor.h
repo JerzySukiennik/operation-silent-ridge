@@ -50,6 +50,8 @@ public:
 	FOnCarrierJetEvent OnBolter;
 	FOnCarrierJetEvent OnWaveOff;
 	FOnCarrierSpawn OnSpawnedOnDeck;
+	/** Last pawn spawned on deck (for listeners that bind after the first spawn). */
+	TWeakObjectPtr<APawn> LastSpawnedOnDeck;
 
 	// ---- motion
 	static constexpr double SpeedMs = 25.0 * 0.514444;

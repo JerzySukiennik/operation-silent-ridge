@@ -74,7 +74,8 @@ void UCarrierSubsystem::SetupDeck()
 		PC->Possess(Foot);
 		PC->SetControlRotation(FRotator(-8.0, Carrier->Pose().YawDeg + 20.0, 0.0));
 		Ops->Unman();
-		Carrier->OnSpawnedOnDeck.Broadcast(Foot);
+		Carrier->LastSpawnedOnDeck = Foot;
+		SpawnBroadcastIn = 5;
 		UE_LOG(LogTemp, Display, TEXT("REPORT carrier_spawn on_foot=true local=%s"), *Carrier->UEToLocal(Foot->GetActorLocation()).ToString());
 	}
 }
@@ -148,6 +149,7 @@ void UCarrierSubsystem::RespawnOnDeck()
 	}
 	Ops->Unman();
 	Fade(1.0, 0.0, 1.0);
+	Carrier->LastSpawnedOnDeck = Foot;
 	Carrier->OnSpawnedOnDeck.Broadcast(Foot);
 	UE_LOG(LogTemp, Display, TEXT("REPORT carrier_respawn_on_deck t=%.1f"), GetWorld()->GetTimeSeconds());
 }
@@ -157,6 +159,7 @@ void UCarrierSubsystem::Tick(float DeltaTime)
 	if (!Carrier) { return; }
 	if (!bSetupDone) { SetupDeck(); }
 	if (!bSetupDone) { return; }
+	if (SpawnBroadcastIn >= 0 && --SpawnBroadcastIn < 0 && Foot) { Carrier->OnSpawnedOnDeck.Broadcast(Foot); }
 	if (SwitchT >= 0.0)
 	{
 		SwitchT -= DeltaTime;
