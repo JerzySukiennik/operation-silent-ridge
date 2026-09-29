@@ -215,3 +215,43 @@ respawn on foot on deck. Elevator 2 works (flight deck <-> hangar deck).
 Epic, true 1920x1080, TSR 67 %, warm, `-autotest=carrier -noshots` (HP): deck phases 62.8 fps avg / 51.5 1% low,
 approach 57.9 / 50.4, VRAM peak 2.53 GB, no over-budget message. Canyon `-autotest` with the carrier in the world: 52.0 / 44.0.
 Autotest result: launch 150 kt in 2.33 s, trap 3-wire "OK", arrest 2.1 s at 3.2 g peak, bolter + wave-off detected.
+
+## M3 — mission & combat (2026-09-29)
+
+C++ `Mission*`, `Weapon*`, `Radar*`, `Sam*`, `Enemy*` (all procedural geometry, no imported models), content `/Game/Mission`
+(`scripts/ue_21_mission.py`: `M_MissionLit` vertex-colour lit material with grime noise + snow above the 1150 m snowline,
+`M_MissionPuffAdd/Tr` soft sprites/ribbons with depth fade, 25 sounds from `scripts/mission/gen_mission_audio.py`:
+synthesized gun/explosions/RWR tones + macOS TTS radio voices through a band-pass).
+- **Mission state** (`AOsrMissionState`, one replicated actor, team-level): briefing card, phases Deck → Launched → Ingress →
+  Target → Egress → Recovery → Success / Fail, radio subtitles + voice, stats (time, detections, SAMs launched/evaded, bombs,
+  best miss, rounds, flares/chaff, kills, deaths, LSO grade + wire). Bound to the carrier events (`MissionCarrierLink.cpp`,
+  compiles without the carrier too); F5-F10 debug keys. Death = Fail screen, then the sortie continues from the deck.
+- **Target** (`AOsrMissionTarget`, layout `MissionLayout.h` picked offline from `terrain.osrh`): complex on the valley floor
+  (power hall + stacks, admin, barracks, warehouses, tanks, fence, towers, trucks, roads), two hardened tunnel portals with
+  blast doors at the gully head, the 4 x 4 m ventilation shaft (grate, collar, headhouse, fence, masts) on a levelled
+  terrace on the spur crest 140 m above the floor. Only a bomb crossing the collar plane inside the opening kills it
+  (scripted secondaries: shaft blowout, both portals blow their doors, smoke columns for 2 min); anything else is reported.
+- **Weapons** (`UOsrWeaponsComponent` on every jet): GAU-22/A pod 220 rds at 55 rds/s, 1036 m/s, tracers, hits;
+  2 GBU-12-class LGBs (`AOsrLaserBomb`: drag, q-limited canard lift with induced drag, +-17 deg SAL seeker on the velocity
+  axis with terrain LOS, PN N=3); release cues from a full trajectory predictor spread over frames (IN RNG, REL n s, TTI);
+  targeting pod = full-screen TV camera 25 m out along the LOS (4 zooms, slew, area/point track snapping to the vent /
+  portals / sites), laser arm + auto-lase in the last 14 s, EOTS field of regard (MASK above +15 deg or beyond 155 deg);
+  per-player laser codes in a spot registry (`SetBombLaserCode` = buddy lasing).
+- **Air defence** (`AOsrRadarSite`, `AOsrMissile`): LOS ray march on the heightfield with 4/3-earth curvature + the
+  4.12(sqrt h_r + sqrt h_t) km horizon, stealth ranges (search 38 km, S-400 24 km, Pantsir 12, Tor 10; nose-on x0.72),
+  Doppler notch (beaming < 60 m/s) and low-level clutter, track quality, IADS cueing; 91N6-class search radar on the
+  1633 m peak, S-400 unit (tower radar + 4 TELs), 2 Pantsir (missiles + 30 mm guns inside 4 km), Tor at the airbase.
+  Missiles: boost/coast + drag, PN N=4 with g limit + lag, command guidance needs the site track + its LOS, S-400 active
+  terminal, radar angular noise, proximity fuze; chaff breaks site tracks (2.5 s re-acquire) and the active seeker,
+  flares seduce IR seekers (AB = harder). RWR scope + tones, MISSILE LAUNCH / DAS warnings.
+- **Fighters** (`AOsrEnemyAirbase`, `AOsrEnemyFighter`): runway fitted to the NE basin, shelters, hangars, tower;
+  Su-57-class pair (procedural mesh — the CC-BY Sketchfab model needs the Blender MCP Sketchfab key) scrambles 12 s
+  after the kill: takeoff roll, climb, GCI/radar/visual intercept, lift-limited 9 g flight with energy, 140 m minimum
+  AGL (terrain masking in the canyon works against them), 2 IR missiles + gun each, RTB when the target goes feet wet.
+
+`-autotest=strike` (and `strike_miss`): last 11 km of the canyon, pop-up, pod point track on the vent, laser, level
+release in range, wings-level beam run while lasing, REPORT hit/miss, egress down the canyon under SAM fire with
+countermeasures; strike hits are logged as `would_be_killed` (invulnerable run). Epic, true 1920x1080, TSR 67 %, warm,
+`-noshots` (HP): **all 58.7 fps avg / 44.2 1 % low, target area 63.4 / 48.2, SAM engagement 59.2 / 44.1, VRAM peak
+2.64 GB, no over-budget message**; bomb into the shaft (miss 0.0 m, TOF 27 s). Canyon `-autotest` with the mission
+world: 52.0 / 44.3.
