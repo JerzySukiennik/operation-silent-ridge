@@ -493,6 +493,7 @@ void AOsrMissionState::DebugKeys()
 			FVector P = Path[I]; P.Y = Ground(P.X, P.Z) + 90.0;
 			const FVector D = Flat(Path[I + 2] - Path[I]).GetSafeNormal();
 			J->RespawnAt(P, AOsrJetPawn::LookingAt(D, FVector(0, 1, 0)), 215.0);
+			MakeAirborne(J);
 			if (Phase == EOsrMissionPhase::Deck || Phase == EOsrMissionPhase::Launched) { SetPhase(EOsrMissionPhase::Ingress); }
 		}
 	}
@@ -503,5 +504,6 @@ void AOsrMissionState::DebugKeys()
 		FVector P = V + FVector(-14000.0, 0, 1500.0);
 		P.Y = Ground(P.X, P.Z) + 600.0;
 		J->RespawnAt(P, AOsrJetPawn::LookingAt(Flat(V - P).GetSafeNormal(), FVector(0, 1, 0)), 230.0);
+		MakeAirborne(J);
 	}
 }

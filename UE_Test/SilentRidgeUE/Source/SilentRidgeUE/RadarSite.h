@@ -50,7 +50,7 @@ public:
 	double DetectionChance(const FVector& P, const FVector& V, bool& bLos, FString* Why = nullptr) const;
 
 	// per-target track
-	struct FTrack { TWeakObjectPtr<AActor> Target; double Q = 0.0; double LockTime = 0.0; double LastSeen = -99.0; bool bLos = false; bool bCounted = false; double LastLaunch = -99.0; int32 InFlight = 0; };
+	struct FTrack { TWeakObjectPtr<AActor> Target; double Q = 0.0; double LockTime = 0.0; double LastSeen = -99.0; bool bLos = false; bool bCounted = false; double LastLaunch = -99.0; int32 InFlight = 0; double ChaffUntil = -99.0; };
 	TArray<FTrack> Tracks;
 	const FTrack* TrackOf(const AActor* A) const;
 	FTrack* TrackOf(const AActor* A);

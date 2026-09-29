@@ -491,7 +491,7 @@ void UOsrWeaponsComponent::UpdateTgp(double Dt)
 		const FVector L = J->RenderRot.UnrotateVector(D);   // Godot body: x right, y up, z aft
 		const double Above = FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(L.Y, -1.0, 1.0)));
 		const double FromNose = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(-L.Z, -1.0, 1.0)));
-		bMasked = Above > 12.0 || FromNose > 155.0;
+		bMasked = Above > 15.0 || FromNose > 155.0;
 	}
 	const double Tti = BombTti();
 	bAutoLase = Tti >= 0.0 && Tti < 14.0;
@@ -516,13 +516,13 @@ void UOsrWeaponsComponent::UpdateTgp(double Dt)
 			C->bConstrainAspectRatio = false;
 			FPostProcessSettings& P = C->PostProcessSettings;
 			P.bOverride_ColorSaturation = true; P.ColorSaturation = FVector4(0, 0, 0, 1);
-			P.bOverride_ColorContrast = true; P.ColorContrast = FVector4(1.35, 1.35, 1.35, 1);
+			P.bOverride_ColorContrast = true; P.ColorContrast = FVector4(1.25, 1.25, 1.25, 1);
 			P.bOverride_ColorGain = true; P.ColorGain = FVector4(0.92, 1.0, 0.95, 1);
 			P.bOverride_FilmGrainIntensity = true; P.FilmGrainIntensity = 0.35f;
 			P.bOverride_VignetteIntensity = true; P.VignetteIntensity = 0.7f;
 			P.bOverride_MotionBlurAmount = true; P.MotionBlurAmount = 0.0f;
 			P.bOverride_BloomIntensity = true; P.BloomIntensity = 0.2f;
-			P.bOverride_AutoExposureBias = true; P.AutoExposureBias = -0.6f;
+			P.bOverride_AutoExposureBias = true; P.AutoExposureBias = 1.0f;   // pod AGC: shadowed slopes stay readable
 		}
 		double Aspect = 16.0 / 9.0;
 		FVector2D Sz;

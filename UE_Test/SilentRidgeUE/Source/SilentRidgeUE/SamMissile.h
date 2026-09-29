@@ -48,6 +48,9 @@ private:
 	double PuffAcc = 0.0;
 	TSet<int32> SeenDecoys;
 	FVector LastAim = FVector::ZeroVector;
+	FVector AimNoise = FVector::ZeroVector;
+	FVector ALatPrev = FVector::ZeroVector;
+	double NoiseAcc = 0.0;
 	bool bGuided = true;
 	void BuildBody(double Len, double Rad);
 	void Detonate(bool bKill, bool bTerrain);

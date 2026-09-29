@@ -60,22 +60,22 @@ void AOsrRadarSite::Setup(EOsrSiteType InType, const FVector2D& At, double InFac
 	{
 	case EOsrSiteType::SearchRadar:
 		DisplayName = TEXT("SEARCH RADAR"); Symbol = TEXT("SR");
-		Antenna = Base + FVector(0, 9.0, 0); DetectRange = 46000.0; ScanPeriod = 2.5; Missiles = 0; Health = 120.0;
+		Antenna = Base + FVector(0, 9.0, 0); DetectRange = 38000.0; ScanPeriod = 2.5; Missiles = 0; Health = 120.0;
 		break;
 	case EOsrSiteType::S400:
 		DisplayName = TEXT("S-400"); Symbol = TEXT("21");
-		Antenna = Base + FVector(0, 27.0, 0); DetectRange = 32000.0; ScanPeriod = 0.1; Missiles = 8; Health = 200.0;
-		MaxRange = 38000.0; MinRange = 1500.0; MinAlt = 12.0; LaunchInterval = 7.0; MaxInFlight = 2;
+		Antenna = Base + FVector(0, 27.0, 0); DetectRange = 24000.0; ScanPeriod = 0.1; Missiles = 8; Health = 200.0;
+		MaxRange = 32000.0; MinRange = 1500.0; MinAlt = 15.0; LaunchInterval = 14.0; MaxInFlight = 1;
 		break;
 	case EOsrSiteType::Pantsir:
 		DisplayName = TEXT("PANTSIR"); Symbol = TEXT("22");
-		Antenna = Base + FVector(0, 6.5, 0); DetectRange = 19000.0; ScanPeriod = 0.1; Missiles = 12; Health = 80.0;
-		MaxRange = 17000.0; MinRange = 600.0; MinAlt = 5.0; LaunchInterval = 4.0; MaxInFlight = 2;
+		Antenna = Base + FVector(0, 6.5, 0); DetectRange = 12000.0; ScanPeriod = 0.1; Missiles = 12; Health = 80.0;
+		MaxRange = 15000.0; MinRange = 600.0; MinAlt = 5.0; LaunchInterval = 8.0; MaxInFlight = 1;
 		break;
 	case EOsrSiteType::Tor:
 		DisplayName = TEXT("TOR"); Symbol = TEXT("15");
-		Antenna = Base + FVector(0, 5.5, 0); DetectRange = 15000.0; ScanPeriod = 0.1; Missiles = 8; Health = 80.0;
-		MaxRange = 12000.0; MinRange = 1000.0; MinAlt = 10.0; LaunchInterval = 5.0; MaxInFlight = 1;
+		Antenna = Base + FVector(0, 5.5, 0); DetectRange = 10000.0; ScanPeriod = 0.1; Missiles = 8; Health = 80.0;
+		MaxRange = 12000.0; MinRange = 1000.0; MinAlt = 10.0; LaunchInterval = 9.0; MaxInFlight = 1;
 		break;
 	}
 	SetActorLocation(ToUE(Base));
@@ -315,8 +315,10 @@ void AOsrRadarSite::OnChaff(const AActor* Target, const FVector& TargetVel)
 	const double PBreak = FMath::Clamp(0.22 + 0.45 * Beam + 0.15 * Low, 0.0, 0.85);
 	if (FMath::FRand() < PBreak)
 	{
+		// the tracker walks off onto the chaff cloud and needs a few seconds to re-acquire
 		T->Q = FMath::Min(T->Q, 0.25);
 		T->LockTime = 0.0;
+		T->ChaffUntil = Now + 2.5;
 	}
 }
 
@@ -349,7 +351,8 @@ void AOsrRadarSite::UpdateTracks(double Dt)
 			{
 				if (const FTrack* Ct = C->TrackOf(J)) { if (Ct->Q >= 0.5) { CueF = 1.7; } }
 			}
-			if (bLos) { T->Q = FMath::Clamp(T->Q + Step * (1.35 * Pd * CueF - 0.3), 0.0, 1.0); T->LastSeen = Now; }
+			if (bLos && Now >= T->ChaffUntil) { T->Q = FMath::Clamp(T->Q + Step * (1.35 * Pd * CueF - 0.3), 0.0, 1.0); T->LastSeen = Now; }
+			else if (bLos) { T->Q = FMath::Max(0.0, T->Q - Step * 0.2); }
 			else { T->Q = FMath::Max(0.0, T->Q - Step * 0.45); }
 			T->LockTime = T->Q >= 0.95 ? T->LockTime + Step : 0.0;
 		}
@@ -372,7 +375,7 @@ void AOsrRadarSite::UpdateLaunches()
 	{
 		AOsrJetPawn* J = Cast<AOsrJetPawn>(T.Target.Get());
 		if (!OsrCombat::JetAirborne(J)) { continue; }
-		const double NeedLock = Type == EOsrSiteType::S400 ? 2.0 : 1.2;
+		const double NeedLock = Type == EOsrSiteType::S400 ? 3.0 : 2.0;
 		if (T.LockTime < NeedLock || !T.bLos) { continue; }
 		T.InFlight = 0;
 		for (AOsrMissile* M : AOsrMissile::HomingOn(GetWorld(), J)) { if (M->Site.Get() == this) { ++T.InFlight; } }

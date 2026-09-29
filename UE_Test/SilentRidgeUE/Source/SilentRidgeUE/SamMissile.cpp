@@ -218,6 +218,18 @@ void AOsrMissile::Tick(float DeltaSeconds)
 		FVector ALat = FVector::ZeroVector;
 		if (bGuide)
 		{
+			// tracking error: command-guided missiles inherit the ground radar's angular error (~1 mrad x range), seekers are tighter
+			NoiseAcc += H;
+			if (NoiseAcc > 0.25)
+			{
+				NoiseAcc = 0.0;
+				const AOsrRadarSite* Sg = Site.Get();
+				const double Rng = (Kind == EOsrMissileKind::AAM_IR || !Sg) ? FVector::Dist(P, Aim) : FVector::Dist(Sg->Antenna, Aim);
+				const double Sigma = 3.0 + (Kind == EOsrMissileKind::AAM_IR ? 0.0008 : 0.0015) * Rng;
+				const FVector NoiseGoal = FVector(FMath::FRandRange(-1.0, 1.0), FMath::FRandRange(-1.0, 1.0), FMath::FRandRange(-1.0, 1.0)) * Sigma;
+				AimNoise = FMath::Lerp(AimNoise, NoiseGoal, 0.5);
+			}
+			Aim += AimNoise;
 			LastAim = Aim;
 			bGuided = true;
 		}
@@ -236,6 +248,9 @@ void AOsrMissile::Tick(float DeltaSeconds)
 			ALat -= Vh * FVector::DotProduct(ALat, Vh);
 			const double GAvail = MaxG * G0 * FMath::Min(1.0, FMath::Square(Speed / 350.0)) * (bColdLaunch && T < 1.2 ? 0.5 : 1.0);
 			if (ALat.Size() > GAvail) { ALat = ALat.GetSafeNormal() * GAvail; }
+			// airframe/autopilot response lag (tau 0.18 s): hard breaks late in the endgame make it overshoot
+			ALat = FMath::Lerp(ALatPrev, ALat, FMath::Clamp(H / 0.18, 0.0, 1.0));
+			ALatPrev = ALat;
 		}
 		const double Rho = FMath::Exp(-FMath::Max(P.Y, 0.0) / 8500.0);
 		const FVector ADrag = -Vh * DragK * Rho * Speed * Speed;
@@ -255,7 +270,7 @@ void AOsrMissile::Tick(float DeltaSeconds)
 			ClosestM = FMath::Min(ClosestM, Dist);
 			if (Dist < Fuse && (Dist > PrevDist || Dist < Lethal * 0.4))
 			{
-				const double Pk = 1.0 - Sm(Lethal * 0.45, Lethal, Dist);
+				const double Pk = 0.85 * (1.0 - Sm(Lethal * 0.35, Lethal, Dist));
 				P = P0 + D * U;
 				Detonate(FMath::FRand() < Pk, false);
 				break;

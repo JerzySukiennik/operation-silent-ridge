@@ -1,8 +1,10 @@
 // Binds the mission state machine to the carrier workstream's events (ACarrierActor: OnCatapultLaunched, OnTrap(Grade, Wire),
 // OnBolter, OnWaveOff, OnSpawnedOnDeck). Compiles without the carrier sources too (then only the F5-F7 debug keys drive them).
 #include "MissionState.h"
-#if __has_include("CarrierActor.h")
+#include "OsrJetPawn.h"
+#if __has_include("CarrierActor.h") && __has_include("CarrierJetOps.h")
 #include "CarrierActor.h"
+#include "CarrierJetOps.h"
 #define OSR_HAS_CARRIER 1
 #else
 #define OSR_HAS_CARRIER 0
@@ -22,5 +24,16 @@ void AOsrMissionState::BindCarrier()
 	UE_LOG(LogTemp, Display, TEXT("OSR mission: bound to the carrier events"));
 #else
 	bCarrierBound = true;
+#endif
+}
+
+void AOsrMissionState::MakeAirborne(AOsrJetPawn* Jet)
+{
+#if OSR_HAS_CARRIER
+	if (UCarrierJetOps* Ops = Jet ? Jet->FindComponentByClass<UCarrierJetOps>() : nullptr)
+	{
+		Ops->State = EDeckState::Airborne;
+		Ops->StateT = 0.0;
+	}
 #endif
 }

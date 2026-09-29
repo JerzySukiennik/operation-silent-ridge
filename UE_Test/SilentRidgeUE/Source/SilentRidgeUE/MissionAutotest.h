@@ -30,6 +30,11 @@ private:
 	double TurnSign = -1.0;
 	TWeakObjectPtr<ACameraActor> Spectator;
 	double SpectatorUntil = -1.0;
+	TWeakObjectPtr<AActor> SpecFollow;     // missile / fighter the spectator camera rides along with
+	double LogAcc = 0.0;
+	FVector GuideDir = FVector::ZeroVector;
+	void UpdateSpectator(AOsrJetPawn* Jet);
+	FVector2D CanyonPilotReverse(AOsrJetPawn* Jet, double Agl, double Speed);
 	void LoadPath();
 	void Shot(const FString& Name, bool bOnce = true);
 	void Spectate(AOsrJetPawn* Jet, const FVector& FromG, const FVector& AtG, double Seconds);

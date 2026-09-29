@@ -138,6 +138,10 @@ private:
 	bool bWorldSpawned = false;
 	bool bCarrierBound = false;
 	void BindCarrier();
+public:
+	/** After teleporting a jet into the air (autotest, debug jumps): tell the carrier deck ops it is airborne (no-op without the carrier). */
+	static void MakeAirborne(class AOsrJetPawn* Jet);
+private:
 	/** The jet the mission follows: the local player's jet, else any manned (player / autopilot) jet in the air. */
 	class AOsrJetPawn* PlayerJet() const;
 };

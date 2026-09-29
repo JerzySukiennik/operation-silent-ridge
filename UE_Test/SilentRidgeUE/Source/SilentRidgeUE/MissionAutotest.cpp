@@ -19,6 +19,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "UnrealClient.h"
+#include "GameFramework/HUD.h"
 
 using namespace OsrMission;
 using namespace OsrMath;
@@ -60,7 +61,49 @@ void FOsrStrikeAutotest::Spectate(AOsrJetPawn* Jet, const FVector& FromG, const 
 	}
 	C->SetActorLocationAndRotation(ToUE(FromG), FRotationMatrix::MakeFromXZ(DirToUE((AtG - FromG).GetSafeNormal()), FVector(0, 0, 1)).ToQuat());
 	PC->SetViewTarget(C);
+	if (PC->MyHUD) { PC->MyHUD->bShowHUD = false; }     // clean external shot
 	SpectatorUntil = Total + Seconds;
+}
+
+void FOsrStrikeAutotest::UpdateSpectator(AOsrJetPawn* Jet)
+{
+	ACameraActor* C = Spectator.Get();
+	AActor* F = SpecFollow.Get();
+	if (!C || !F || SpectatorUntil < 0.0) { return; }
+	FVector P, V, Up(0, 1, 0);
+	if (const AOsrMissile* M = Cast<AOsrMissile>(F)) { P = M->P; V = M->V; if (!M->bAlive) { SpecFollow.Reset(); return; } }
+	else if (const AOsrEnemyFighter* E = Cast<AOsrEnemyFighter>(F)) { P = E->P; V = E->V; Up = E->Up; }
+	else { return; }
+	const FVector Vh = V.GetSafeNormal();
+	const FVector Side = FVector::CrossProduct(Vh, FVector(0, 1, 0)).GetSafeNormal();
+	const bool bMissile = F->IsA<AOsrMissile>();
+	const FVector From = bMissile ? P - Vh * 45.0 + Side * 22.0 + FVector(0, 6.0, 0) : P - Vh * 34.0 + Side * 12.0 + Up * 6.0;
+	const FVector At = P + Vh * (bMissile ? 30.0 : 12.0);
+	C->SetActorLocationAndRotation(ToUE(From), FRotationMatrix::MakeFromXZ(DirToUE((At - From).GetSafeNormal()), FVector(0, 0, 1)).ToQuat());
+}
+
+FVector2D FOsrStrikeAutotest::CanyonPilotReverse(AOsrJetPawn* Jet, double Agl, double Speed)
+{
+	// egress: fly the canyon path backwards (towards the sea), terrain following at Agl
+	const FF35FlightModel& M = Jet->Model;
+	const FVector Pos = M.Position;
+	int32 Best = PathI;
+	double BestD = TNumericLimits<double>::Max();
+	for (int32 K = FMath::Max(0, PathI - 12); K <= FMath::Min(PathI + 12, Path.Num() - 1); ++K)
+	{
+		const double D = FVector2D(Path[K].X - Pos.X, Path[K].Z - Pos.Z).Size();
+		if (D < BestD) { BestD = D; Best = K; }
+	}
+	PathI = Best;
+	const FVector Look = Path[FMath::Max(PathI - 3, 0)];
+	double FloorH = 0.0;
+	for (int32 K = 0; K < 10; ++K)
+	{
+		const FVector Q = Pos + M.Velocity * (K * 0.25);
+		FloorH = FMath::Max(FloorH, Ground(Q.X, Q.Z));
+	}
+	const double GammaDes = FMath::Clamp((FloorH + Agl - Pos.Y) * 0.01, -0.15, 0.35);
+	return Pilot(Jet, Look - Pos, GammaDes, Speed);
 }
 
 FVector2D FOsrStrikeAutotest::Pilot(AOsrJetPawn* Jet, const FVector& HeadingDir, double Gamma, double Speed)
@@ -140,7 +183,18 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 	if (Spectator.IsValid() && SpectatorUntil >= 0.0 && Total > SpectatorUntil)
 	{
 		SpectatorUntil = -1.0;
+		SpecFollow.Reset();
 		PC->SetViewTarget(Jet);
+		if (PC->MyHUD) { PC->MyHUD->bShowHUD = true; }
+	}
+	UpdateSpectator(Jet);
+	// countermeasures whenever something homes on us (all phases after the pop-up)
+	CmAcc += Dt;
+	if (Phase != TEXT("canyon") && (W->MissilesInbound > 0 || W->IrInbound > 0) && CmAcc > 1.1)
+	{
+		CmAcc = 0.0;
+		W->CmdFlare();
+		W->CmdChaff();
 	}
 	const FVector Vent = Tg->VentCentre;
 	const FVector Aim = bMiss ? Vent + FVector(40.0, 0.0, 0.0) : Vent;
@@ -165,6 +219,8 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 			P.Y = Ground(P.X, P.Z) + 80.0;
 			const FVector D = Flat(Path[FMath::Min(K + 2, Path.Num() - 1)] - Path[K]).GetSafeNormal();
 			Jet->RespawnAt(P, AOsrJetPawn::LookingAt(D, FVector(0, 1, 0)), 215.0);
+			AOsrMissionState::MakeAirborne(Jet);
+			Jet->bGearDown = false;
 			Jet->AutopilotLever = 0.9;
 			W->Selected = EOsrWeapon::Lgb;
 			UE_LOG(LogTemp, Display, TEXT("REPORT strike start mode=%s path_i=%d vent=(%.0f, %.1f, %.0f) dist_km=%.1f"), bMiss ? TEXT("miss") : TEXT("hit"), K, Vent.X, Vent.Y, Vent.Z, Hdist(P, Vent) / 1000.0);
@@ -201,7 +257,7 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 		if (Phase == TEXT("attack"))
 		{
 			if (T > 2.0) { Shot(TEXT("tgp_view")); }
-			if (W->bInRange && T > 2.5)
+			if (W->bInRange && T > 2.5 && FMath::Abs(Jet->Model.PitchDeg()) < 6.0)
 			{
 				if (W->CmdReleaseBomb())
 				{
@@ -222,12 +278,26 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 	else if (Phase == TEXT("guide"))
 	{
 		FramesTarget.Add(float(Dt));
-		// offset turn keeps the pod unmasked (target on the low wing side) while the bomb flies
-		const FVector ToV = Flat(Vent - Pos).GetSafeNormal();
-		const FVector Off = FQuat(FVector(0, 1, 0), TurnSign * Rad(55.0)).RotateVector(ToV);
-		Pr = Pilot(Jet, Off, FMath::Clamp((Ytop - Pos.Y) * 0.004, -0.1, 0.1), 235.0);
+		// beam run: turn perpendicular to the line of sight once, then wings level — the EOTS under the nose keeps the
+		// target below the wing plane (a banked wheel around it would put it above the wing and mask the pod)
+		const FVector Radial = Flat(Pos - Vent).GetSafeNormal();
+		if (GuideDir.IsZero())
+		{
+			GuideDir = FVector::CrossProduct(FVector(0, 1, 0), Radial);
+			if (FVector::DotProduct(GuideDir, Jet->Model.Velocity) < 0.0) { GuideDir = -GuideDir; }
+		}
+		const double Rr = Hdist(Pos, Vent);
+		Pr = Pilot(Jet, GuideDir, FMath::Clamp((Ytop - Pos.Y) * 0.004, -0.1, 0.1), 235.0);
 		const TArray<AOsrLaserBomb*> Bombs = AOsrLaserBomb::InFlight(Ms->GetWorld(), Jet);
-		if (Bombs.Num() > 0 && T > 1.0 && T < 1.2) { UE_LOG(LogTemp, Display, TEXT("REPORT strike guiding tti=%.1f lasing=%d masked=%d"), Bombs[0]->Tti, W->bLasing ? 1 : 0, W->bMasked ? 1 : 0); }
+		LogAcc += Dt;
+		if (Bombs.Num() > 0 && LogAcc > 2.0)
+		{
+			LogAcc = 0.0;
+			const AOsrLaserBomb* B = Bombs[0];
+			UE_LOG(LogTemp, Display, TEXT("REPORT strike guiding t=%.1f tti=%.1f bomb_seeking=%d off_axis_deg=%.1f bomb_los=%d lasing=%d masked=%d range_km=%.1f"),
+				T, B->Tti, B->bSeeking ? 1 : 0, FMath::RadiansToDegrees(AngleBetween(B->V, Aim - B->P)), LineOfSight(B->P, Aim + FVector(0, 1, 0), 0.3) ? 1 : 0,
+				W->bLasing ? 1 : 0, W->bMasked ? 1 : 0, Rr / 1000.0);
+		}
 		if (Bombs.Num() == 0 && !bImpact && T > 0.5)
 		{
 			bImpact = true;
@@ -254,26 +324,16 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 	else if (Phase == TEXT("egress"))
 	{
 		if (T < 10.0) { FramesTarget.Add(float(Dt)); }
-		double FloorH = 0.0;
-		for (int32 K = 0; K < 10; ++K)
+		if (T < 0.1)
 		{
-			const FVector Q = Pos + Jet->Model.Velocity * (K * 0.3);
-			FloorH = FMath::Max(FloorH, Ground(Q.X, Q.Z));
+			// rejoin the canyon path near us, then fly it backwards
+			double BestD = 1e12;
+			for (int32 K = 0; K < Path.Num(); ++K) { const double D = Hdist(Path[K], Pos); if (D < BestD) { BestD = D; PathI = K; } }
 		}
-		const FVector Home = OsrWorld::Mouth - Pos;
-		const double Gamma = FMath::Clamp((FloorH + 180.0 - Pos.Y) * 0.006, -0.25, 0.3);
-		Pr = Pilot(Jet, Home, Gamma, 290.0);
-		// countermeasures while anything homes on us
-		CmAcc += Dt;
-		if ((W->MissilesInbound > 0 || W->IrInbound > 0) && CmAcc > 0.9)
+		Pr = CanyonPilotReverse(Jet, 110.0, 280.0);
+		if ((W->MissilesInbound > 0 || W->IrInbound > 0) && CmAcc < 0.05 && !Shots.Contains(TEXT("flares")) && SpectatorUntil < 0.0)
 		{
-			CmAcc = 0.0;
-			W->CmdFlare();
-			W->CmdChaff();
-			if (!Shots.Contains(TEXT("flares")) && SpectatorUntil < 0.0)
-			{
-				Ap.bLookBack = true;
-			}
+			Ap.bLookBack = true;
 		}
 		if (Ap.bLookBack && CmAcc > 0.45) { Shot(TEXT("flares")); }
 		if (Ap.bLookBack && CmAcc > 0.7) { Ap.bLookBack = false; }
@@ -286,7 +346,8 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 				{
 					const FVector Vh = It->V.GetSafeNormal();
 					const FVector Side = FVector::CrossProduct(Vh, FVector(0, 1, 0)).GetSafeNormal();
-					Spectate(Jet, It->P - Vh * 90.0 + Side * 70.0 + FVector(0, 25.0, 0), It->P + Vh * 60.0, 1.0);
+					Spectate(Jet, It->P - Vh * 45.0 + Side * 22.0, It->P + Vh * 30.0, 1.2);
+					SpecFollow = *It;
 					Shots.Add(TEXT("sam_pending"));
 					break;
 				}
@@ -302,7 +363,8 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 				{
 					const FVector Vh = It->V.GetSafeNormal();
 					const FVector Side = FVector::CrossProduct(Vh, FVector(0, 1, 0)).GetSafeNormal();
-					Spectate(Jet, It->P - Vh * 38.0 + Side * 14.0 + It->Up * 7.0, It->P + Vh * 20.0, 1.2);
+					Spectate(Jet, It->P - Vh * 34.0 + Side * 12.0 + It->Up * 6.0, It->P + Vh * 12.0, 1.2);
+					SpecFollow = *It;
 					Shots.Add(TEXT("fighters_pending"));
 					UE_LOG(LogTemp, Display, TEXT("REPORT fighter %s state=%s speed_ms=%.0f agl_m=%.0f dist_to_player_km=%.1f"), *It->Callsign, AOsrEnemyFighter::StateName(It->State), It->V.Size(), It->P.Y - Ground(It->P.X, It->P.Z), FVector::Dist(It->P, Pos) / 1000.0);
 					break;
