@@ -176,6 +176,25 @@ void FDeckHud::Draw(AHUD* Hud, UCanvas* Canvas, APawn* Pawn)
 	{
 		X.Rect(FVector2D(Size.X * 0.5 - 120 * X.S, Size.Y * 0.78), FVector2D(240 * X.S * FMath::Min(Sub->ExitHold / 0.7, 1.0), 8 * X.S), Dh_YELLOW);
 	}
+	// airborne: carrier marker (touchdown point) with range and the landing heading (BRC - 9 deg)
+	if (Ops->State == EDeckState::Airborne && Jet->bAlive)
+	{
+		const FVector2D Td = ACarrierActor::LandPoint(CarrierLayout::TouchdownS, 0.0);
+		const FVector W = Carrier->LocalToUE(FVector(Td.X, Td.Y, CarrierLayout::DeckZ));
+		const FVector P = Hud->Project(W, true);
+		const double RangeNm = FVector::Dist(W, Jet->GetActorLocation()) * 0.01 / 1852.0;
+		const double LandHdg = FMath::Fmod(Carrier->Pose().YawDeg + CarrierLayout::LandHdgDeg + 90.0 + 720.0, 360.0);   // UE yaw -> compass (north = -Y)
+		if (P.Z > 0.0 && RangeNm > 0.3)
+		{
+			const FVector2D Q(P.X, P.Y);
+			const double R = 10.0 * X.S;
+			X.Line(Q + FVector2D(0, -R), Q + FVector2D(R, 0), 1.6, Dh_GREEN);
+			X.Line(Q + FVector2D(R, 0), Q + FVector2D(0, R), 1.6, Dh_GREEN);
+			X.Line(Q + FVector2D(0, R), Q + FVector2D(-R, 0), 1.6, Dh_GREEN);
+			X.Line(Q + FVector2D(-R, 0), Q + FVector2D(0, -R), 1.6, Dh_GREEN);
+			X.Text(Q + FVector2D(0, 22) * X.S, FString::Printf(TEXT("CVN %.1f NM  FB %03.0f"), RangeNm, LandHdg), 14, 1, Dh_GREEN);
+		}
+	}
 	// cues: HOOK, DFP / APC
 	FString Cue;
 	if (Ops->bHookDown) { Cue += TEXT("HOOK  "); }

@@ -904,7 +904,14 @@ void UCarrierJetOps::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 	if (!Jet->IsLocallyControlled()) { return; }
 	switch (State)
 	{
-	case EDeckState::Taxi: Prompt = TEXT("Follow the yellow shirt to catapult 1 - throttle RT, steer rudder/stick, brake B"); break;
+	case EDeckState::Taxi:
+	{
+		const FVector2D D = Ops_CatDir(0), N(-D.Y, D.X);
+		const FVector2D R = Pos + Ops_F2(Yaw) * Ops_NOSE_X - Ops_CatStart(0);
+		Prompt = FString::Printf(TEXT("Follow the yellow shirt to CAT 1 (%.0f m, %.1f m %s of the line) - RT throttle, LB/RB or stick steer, B brake"),
+			FMath::Max(0.0, -FVector2D::DotProduct(R, D)), FMath::Abs(FVector2D::DotProduct(R, N)), FVector2D::DotProduct(R, N) > 0.0 ? TEXT("right") : TEXT("left"));
+		break;
+	}
 	case EDeckState::Hookup: Prompt = TEXT("Hooking up - launch bar down, holdback on, JBD raising"); break;
 	case EDeckState::OnCat:
 		Prompt = bSaluted ? TEXT("Shooter: LAUNCH...") : (Jet->Model.Engine >= 0.97 ? TEXT("MIL power set - SALUTE the shooter (A / Cross / Space)") : TEXT("Tension - run up to MIL power (RT, hold at 100 %)"));
