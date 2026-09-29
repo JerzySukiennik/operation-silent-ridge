@@ -97,6 +97,7 @@ private:
 	FVector2D HookupFromPos = FVector2D::ZeroVector;
 	double HookupFromYaw = 0.0;
 	double LastCallT = -99.0;
+	double NoTouchT = 0.0;   // after a release from the deck: no touchdown / structure checks while leaving the deck
 	int32 LastCallCount = 0;
 
 	void BuildParts();

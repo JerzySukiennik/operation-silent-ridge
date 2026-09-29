@@ -363,6 +363,7 @@ void UCarrierJetOps::Release(const FVector& VelLocalMs, double PitchDeg)
 	M.RefreshAirData();
 	Wire = -1;
 	bHookPrevValid = false;
+	NoTouchT = 1.2;
 	SetState(EDeckState::Airborne);
 }
 
@@ -608,6 +609,7 @@ void UCarrierJetOps::PostStep(double Dt)
 {
 	using namespace CarrierLayout;
 	if (State != EDeckState::Airborne || !Jet->bAlive) { return; }
+	if (NoTouchT > 0.0) { NoTouchT -= Dt; bHookPrevValid = false; return; }
 	const FVector O = Carrier->GodotToLocal(Jet->Model.Position);
 	if (O.X < SternX - 400.0 || O.X > BowX + 150.0 || FMath::Abs(O.Y) > 200.0 || O.Z > DeckZ + 60.0)
 	{

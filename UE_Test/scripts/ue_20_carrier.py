@@ -263,12 +263,18 @@ if "f35" in STEPS:
 
 # ---------------------------------------------------------------- LSO / deck audio (wav -> SoundWave)
 if "audio" in STEPS and os.path.isdir(ASRC):
+    tasks = []
     for f in sorted(glob.glob(os.path.join(ASRC, "*.wav"))):
-        nm = os.path.splitext(os.path.basename(f))[0]
-        full = "/Game/Carrier/Audio/" + nm
-        if EAL.does_asset_exist(full):
-            EAL.delete_asset(full)
-        import_file(f, "/Game/Carrier/Audio", nm)
+        t = unreal.AssetImportTask()
+        t.set_editor_property("filename", f)
+        t.set_editor_property("destination_path", "/Game/Carrier/Audio")
+        t.set_editor_property("replace_existing", True)
+        t.set_editor_property("automated", True)
+        t.set_editor_property("save", True)
+        tasks.append(t)
+    if tasks:
+        AT.import_asset_tasks(tasks)
+    log("audio assets", [p.split("/")[-1] for p in EAL.list_assets("/Game/Carrier/Audio", recursive=False)])
     log("M3 AUDIO DONE")
 
 # mannequin: report the reference pose we rely on (head bone, hand positions) for the helmet offset + suit zones
