@@ -10,6 +10,10 @@ const FOsrHelpRow GOsrLayoutHelp[] = {
 	{TEXT("R3 (hold)"), TEXT("Look back")},
 	{TEXT("B / Circle (hold)"), TEXT("Speedbrake")},
 	{TEXT("Y / Triangle"), TEXT("Landing gear")},
+	{TEXT("D-pad down  (H)"), TEXT("Tailhook up / down")},
+	{TEXT("D-pad up  (V)"), TEXT("Carrier approach mode: Delta Flight Path + auto-throttle (gear down)")},
+	{TEXT("A / Cross  (Space)"), TEXT("Salute the shooter (on the catapult at MIL)")},
+	{TEXT("X / Square hold  (F)"), TEXT("Climb out (stopped on deck)")},
 	{TEXT("Back / Share"), TEXT("This help")},
 	{TEXT("Start / Options"), TEXT("Pause menu (respawn, invert pitch, quit)")},
 };

@@ -3,6 +3,7 @@
 #include "OsrJetPawn.h"
 #include "OsrControls.h"
 #include "OsrPadInput.h"
+#include "DeckHud.h"
 #include "Misc/CommandLine.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
@@ -100,7 +101,12 @@ void AOsrHud::DrawHUD()
 {
 	Super::DrawHUD();
 	Jet = Cast<AOsrJetPawn>(GetOwningPawn());
-	if (!Jet || !Canvas) { return; }
+	if (!Canvas) { return; }
+	if (!Jet)
+	{
+		FDeckHud::Draw(this, Canvas, GetOwningPawn());   // on foot on the carrier (M3)
+		return;
+	}
 	if (!Font && GEngine) { Font = GEngine->GetLargeFont(); }
 	Size = FVector2D(Canvas->ClipX, Canvas->ClipY);
 	S = Size.Y / 1080.0;
@@ -128,6 +134,7 @@ void AOsrHud::DrawHUD()
 	HeadingTape(T);
 	LowerBlocks(T);
 	Warnings(T);
+	FDeckHud::Draw(this, Canvas, GetOwningPawn());   // carrier ops: launch prompts, meatball repeater, LSO calls, grade (M3)
 	Help();
 	PauseMenu();
 	PadInfo();

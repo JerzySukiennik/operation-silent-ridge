@@ -140,6 +140,8 @@ public:
 	void SetControls(double Pitch, double Roll, double Yaw, double Throttle, double Afterburner, bool bBrake = false);
 	void Step(double Dt);
 	void RefreshAirData() { UpdateAir(); }
+	/** Carrier deck ops (taxi, catapult, arrestment): engine spool, thrust, fuel and air data only; the caller moves the jet. */
+	void StepEngine(double Dt) { UpdateEngine(Dt); UpdateAir(); ComputeThrust(); SimTime += Dt; }
 
 	FVector AngularVelocityWorld() const { return Orientation.RotateVector(LocalOmega()); }
 	double HeadingDeg() const;

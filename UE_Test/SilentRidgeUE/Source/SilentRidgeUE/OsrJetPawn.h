@@ -26,6 +26,25 @@ struct FOsrTelemetry
 	bool bAb = false, bGear = false, bBrake = false, bAlive = true;
 };
 
+/** Optional per-jet hook for carrier deck ops (catapult, deck roll, arresting gear, deck respawn); implemented by UCarrierJetOps. */
+class IOsrJetDeckHook
+{
+public:
+	virtual ~IOsrJetDeckHook() {}
+	/** Before each 120 Hz step; return true when the hook moved the model itself (jet on deck) and the flight step is skipped. */
+	virtual bool PreStep(double Dt) = 0;
+	/** After a normal flight step (touchdown / wire / ramp detection). */
+	virtual void PostStep(double Dt) = 0;
+	/** After the render interpolation; may override RenderPos/RenderRot so deck-locked jets follow the moving deck without lag. */
+	virtual void PostInterpolate() = 0;
+	/** True = skip the terrain collision test this step (on deck, or checked by the hook). */
+	virtual bool OverrideCollision() = 0;
+	/** True = the hook handled the respawn (respawn on foot on the carrier deck). */
+	virtual bool HandleRespawn() = 0;
+	/** True = no PULL UP / ALTITUDE warnings (carrier approach, on deck). */
+	virtual bool SuppressImpactWarning() const = 0;
+};
+
 UCLASS()
 class SILENTRIDGEUE_API AOsrJetPawn : public APawn
 {
@@ -86,6 +105,12 @@ public:
 	static FVector SpawnPosition();
 	static FQuat SpawnRotation();
 	void RespawnAt(const FVector& Pos, const FQuat& Rot, double Speed);
+
+	// carrier ops (M3): deck hook, audio gain for an unmanned jet heard from outside, mesh access for gear/hook parts
+	IOsrJetDeckHook* DeckHook = nullptr;
+	double AudioGainScale = 1.0;
+	UStaticMeshComponent* GetJetMesh() const { return Mesh; }
+	void CrashAt(const FVector& AtGodot) { Crash(AtGodot); }
 
 protected:
 	UPROPERTY(VisibleAnywhere) TObjectPtr<USceneComponent> Root;

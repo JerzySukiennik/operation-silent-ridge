@@ -209,6 +209,7 @@ void AOsrJetPawn::PossessedBy(AController* NewController)
 
 void AOsrJetPawn::Respawn()
 {
+	if (DeckHook && DeckHook->HandleRespawn()) { return; }
 	RespawnAt(SpawnPosition(), SpawnRotation(), SPAWN_SPEED);
 }
 
@@ -393,16 +394,25 @@ void AOsrJetPawn::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	const double Dt = FMath::Min<double>(DeltaSeconds, 0.1);
-	UpdateMenu();
+	// an unmanned jet (pilot walking on the carrier deck) reads no input and has no menu
+	const bool bManned = bAutopilot || IsLocallyControlled();
+	if (bManned) { UpdateMenu(); }
+	else { bPaused = false; Controls.bEnabled = true; }
 	if (bAutopilot)
 	{
 		Controls.Input = AutopilotInput;
 		AutopilotInput.bGearToggle = false;
 		AutopilotInput.bHelpToggle = false;
 	}
-	else
+	else if (bManned)
 	{
 		Controls.Update(ReadRaw(), Dt);
+	}
+	else
+	{
+		Controls.Input.Pitch = Controls.Input.Roll = Controls.Input.Yaw = 0.0;
+		Controls.Input.Look = FVector2D::ZeroVector;
+		Controls.Input.bGearToggle = Controls.Input.bHelpToggle = Controls.Input.bLookBack = false;
 	}
 	const FOsrControlInput& In = Controls.Input;
 	if (In.bHelpToggle) { bShowHelp = !bShowHelp; }
@@ -423,13 +433,14 @@ void AOsrJetPawn::Tick(float DeltaSeconds)
 			const double A = FMath::Clamp(Accum / SIM_DT, 0.0, 1.0);
 			RenderPos = FMath::Lerp(PrevPos, CurPos, A);
 			RenderRot = FQuat::Slerp(PrevRot, CurRot, A).GetNormalized();
+			if (DeckHook) { DeckHook->PostInterpolate(); }
 			SetActorLocationAndRotation(ToUE(RenderPos), RotToUE(RenderRot));
 		}
 		WarnTimer -= Dt;
 		if (WarnTimer <= 0.0)
 		{
 			WarnTimer = 0.1;
-			TimeToImpact = PredictImpact();
+			TimeToImpact = (DeckHook && DeckHook->SuppressImpactWarning()) ? 99.0 : PredictImpact();
 		}
 	}
 	else if (RespawnTimer >= 0.0)
@@ -449,7 +460,11 @@ void AOsrJetPawn::SimStep(double Dt)
 {
 	PrevPos = CurPos;
 	PrevRot = CurRot;
-	Model.Step(Dt);
+	if (!DeckHook || !DeckHook->PreStep(Dt))
+	{
+		Model.Step(Dt);
+		if (DeckHook) { DeckHook->PostStep(Dt); }
+	}
 	CurPos = Model.Position;
 	CurRot = Model.Orientation;
 	CheckCollision();
@@ -457,6 +472,7 @@ void AOsrJetPawn::SimStep(double Dt)
 
 void AOsrJetPawn::CheckCollision()
 {
+	if (DeckHook && DeckHook->OverrideCollision()) { return; }
 	const FVector P = Model.Position;
 	const double Ground = SurfaceHeight(P.X, P.Z);
 	if (P.Y - Ground > 40.0) { return; }
@@ -1148,15 +1164,16 @@ void AOsrJetPawn::UpdateAudio(double Dt)
 		Aspect = FMath::Clamp(0.5 - 0.5 * FVector::DotProduct(-BasisZ(RenderRot), ToCam.GetSafeNormal()), 0.0, 1.0);
 	}
 	const double Roar = Lerp(0.45, 1.0, Aspect);
-	const double Fade = EngineFade;
+	const double Fade = EngineFade * AudioGainScale;
 	SetLayer("engine_idle", WIdle * Lerp(1.25, 0.8, Aspect) * Fade, 0.9 + 0.22 * N);
 	SetLayer("engine_mil", WMil * Roar * Fade, 0.88 + 0.16 * N + 0.03 * Ab);
 	SetLayer("engine_ab", WAb * 1.25 * Roar * Fade, 0.95 + 0.06 * Ab);
 	const double WLo = Smoothstep(60.0, 260.0, Ias) * (1.0 - 0.5 * Smoothstep(350.0, 600.0, Ias));
 	const double WHi = Smoothstep(220.0, 620.0, Ias);
 	const double WindBus = 0.708;   // Godot "Wind" bus at -3 dB
-	SetLayer("wind_low", WLo * 0.7 * WindBus * (bAlive ? 1.0 : 0.0), 0.85 + Ias / 1400.0);
-	SetLayer("wind_high", WHi * 0.75 * WindBus * (bAlive ? 1.0 : 0.0), 0.8 + Ias / 1500.0);
+	const double Heard = bAlive && IsLocallyControlled() ? 1.0 : 0.0;   // airflow noise only for the pilot
+	SetLayer("wind_low", WLo * 0.7 * WindBus * Heard, 0.85 + Ias / 1400.0);
+	SetLayer("wind_high", WHi * 0.75 * WindBus * Heard, 0.8 + Ias / 1500.0);
 	const double Buf = FMath::Max(Smoothstep(14.0, 28.0, Aoa), Smoothstep(5.0, 8.5, T.G)) * Smoothstep(120.0, 220.0, Ias);
-	SetLayer("buffet", Buf * 1.1 * WindBus * (bAlive ? 1.0 : 0.0), 0.9 + 0.2 * Buf);
+	SetLayer("buffet", Buf * 1.1 * WindBus * Heard, 0.9 + 0.2 * Buf);
 }
