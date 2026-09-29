@@ -121,7 +121,7 @@ void AOsrEnemyFighter::BuildMesh()
 		M.Cylinder(FVector(-10.85, -0.38, Sd * 0.95), FVector(1, 0, 0), 0.05, 0.0, 0.5, 12, Dark, false);
 		M.Box(FVector(3.1, -0.45, Sd * 1.25), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FVector(1.1, 0.42, 0.42), Belly);
 		M.Box(FVector(4.22, -0.45, Sd * 1.25), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FVector(0.02, 0.36, 0.36), Dark);
-		F.Cylinder(FVector(-10.9, -0.38, Sd * 0.95), FVector(-1, 0, 0), 5.0, 0.48, 0.1, 10, FLinearColor(1.0f, 0.55f, 0.25f) * 12.0f, false);
+		F.Cylinder(FVector(-10.9, -0.38, Sd * 0.95), FVector(-1, 0, 0), 5.0, 0.48, 0.1, 10, FLinearColor(1.0f, 0.55f, 0.25f) * 6.0f, false);
 	}
 	// canopy (gold-tinted like the real one)
 	{
@@ -330,7 +330,7 @@ void AOsrEnemyFighter::Tick(float DeltaSeconds)
 		P += V * Dt;
 		Up = FQuat(V.GetSafeNormal(), Dt * 4.0).RotateVector(Up);
 		TrailAcc += Dt;
-		if (Fx && TrailAcc > 0.04) { TrailAcc = 0.0; Fx->Puff(P, V * 0.1, 6.0, 3.0, 14.0, FLinearColor(0.06f, 0.06f, 0.06f), 0.8, false, 0.3, 1.0); Fx->Puff(P, FVector::ZeroVector, 0.3, 2.0, 5.0, FLinearColor(1.0f, 0.5f, 0.15f) * 10.0f, 0.9, true, 0.0); }
+		if (Fx && TrailAcc > 0.04) { TrailAcc = 0.0; Fx->Puff(P, V * 0.1, 6.0, 3.0, 14.0, FLinearColor(0.06f, 0.06f, 0.06f), 0.8, false, 0.3, 1.0); Fx->Puff(P, FVector::ZeroVector, 0.3, 2.0, 5.0, FLinearColor(1.0f, 0.5f, 0.15f) * 5.0f, 0.9, true, 0.0); }
 		if (P.Y < Ground(P.X, P.Z))
 		{
 			if (Fx) { Fx->Explosion(FVector(P.X, Ground(P.X, P.Z), P.Z), EOsrBlast::Aircraft); }
@@ -440,7 +440,7 @@ void AOsrEnemyFighter::Tick(float DeltaSeconds)
 	{
 		const FVector Fwd = V.GetSafeNormal();
 		const FVector Rt = FVector::CrossProduct(Fwd, Up).GetSafeNormal();
-		for (double Sd : {-1.0, 1.0}) { Fx->Puff(P - Fwd * 11.5 + Rt * (Sd * 0.95) - Up * 0.38, V * 0.9, 0.05, 0.5, 0.9, FLinearColor(1.0f, 0.6f, 0.3f) * 18.0f, 0.8, true, 0.0); }
+		for (double Sd : {-1.0, 1.0}) { Fx->Puff(P - Fwd * 11.5 + Rt * (Sd * 0.95) - Up * 0.38, V * 0.9, 0.05, 0.5, 0.9, FLinearColor(1.0f, 0.6f, 0.3f) * 8.0f, 0.8, true, 0.0); }
 	}
 }
 

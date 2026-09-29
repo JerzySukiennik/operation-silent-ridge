@@ -63,6 +63,9 @@ void FOsrStrikeAutotest::Spectate(AOsrJetPawn* Jet, const FVector& FromG, const 
 	PC->SetViewTarget(C);
 	if (PC->MyHUD) { PC->MyHUD->bShowHUD = false; }     // clean external shot
 	SpectatorUntil = Total + Seconds;
+	SpecPos = FromG;
+	bSpecFixed = false;
+	SpecFollow.Reset();
 }
 
 void FOsrStrikeAutotest::UpdateSpectator(AOsrJetPawn* Jet)
@@ -74,6 +77,11 @@ void FOsrStrikeAutotest::UpdateSpectator(AOsrJetPawn* Jet)
 	if (const AOsrMissile* M = Cast<AOsrMissile>(F)) { P = M->P; V = M->V; if (!M->bAlive) { SpecFollow.Reset(); return; } }
 	else if (const AOsrEnemyFighter* E = Cast<AOsrEnemyFighter>(F)) { P = E->P; V = E->V; Up = E->Up; }
 	else { return; }
+	if (bSpecFixed)
+	{
+		C->SetActorLocationAndRotation(ToUE(SpecPos), FRotationMatrix::MakeFromXZ(DirToUE((P - SpecPos).GetSafeNormal()), FVector(0, 0, 1)).ToQuat());
+		return;
+	}
 	const FVector Vh = V.GetSafeNormal();
 	const FVector Side = FVector::CrossProduct(Vh, FVector(0, 1, 0)).GetSafeNormal();
 	const bool bMissile = F->IsA<AOsrMissile>();
@@ -96,13 +104,18 @@ FVector2D FOsrStrikeAutotest::CanyonPilotReverse(AOsrJetPawn* Jet, double Agl, d
 	}
 	PathI = Best;
 	const FVector Look = Path[FMath::Max(PathI - 3, 0)];
-	double FloorH = 0.0;
-	for (int32 K = 0; K < 10; ++K)
+	// anticipating terrain following: the flight path angle needed to clear every point of the next 7 s (straight line)
+	const FVector Hv = Flat(M.Velocity);
+	const double Hs = FMath::Max(Hv.Size(), 50.0);
+	double GammaDes = -0.12;
+	for (int32 K = 1; K <= 28; ++K)
 	{
-		const FVector Q = Pos + M.Velocity * (K * 0.25);
-		FloorH = FMath::Max(FloorH, Ground(Q.X, Q.Z));
+		const double Tk = K * 0.25;
+		const FVector Q = Pos + Hv * Tk;
+		const double Need = FMath::Atan2(Ground(Q.X, Q.Z) + Agl - Pos.Y, Hs * Tk);
+		GammaDes = FMath::Max(GammaDes, Need);
 	}
-	const double GammaDes = FMath::Clamp((FloorH + Agl - Pos.Y) * 0.01, -0.15, 0.35);
+	GammaDes = FMath::Clamp(GammaDes, -0.2, 0.6);
 	return Pilot(Jet, Look - Pos, GammaDes, Speed);
 }
 
@@ -190,11 +203,12 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 	UpdateSpectator(Jet);
 	// countermeasures whenever something homes on us (all phases after the pop-up)
 	CmAcc += Dt;
-	if (Phase != TEXT("canyon") && (W->MissilesInbound > 0 || W->IrInbound > 0) && CmAcc > 1.1)
+	if (Phase != TEXT("canyon") && (W->MissilesInbound > 0 || W->IrInbound > 0) && W->NearestMissileDist < 7000.0 && CmAcc > 1.6)
 	{
 		CmAcc = 0.0;
-		W->CmdFlare();
-		W->CmdChaff();
+		if (W->IrInbound > 0) { W->CmdFlare(); }
+		if (W->MissilesInbound > 0) { W->CmdChaff(); }
+		if (W->IrInbound > 0 || W->Flares > 20) { bFlarePending = true; }
 	}
 	const FVector Vent = Tg->VentCentre;
 	const FVector Aim = bMiss ? Vent + FVector(40.0, 0.0, 0.0) : Vent;
@@ -243,6 +257,19 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 	else if (Phase == TEXT("popup") || Phase == TEXT("attack"))
 	{
 		FramesTarget.Add(float(Dt));
+		if (Phase == TEXT("popup") && T > 0.5 && !Shots.Contains(TEXT("vent_pending")))
+		{
+			Spectate(Jet, Vent + FVector(-190.0, 70.0, 150.0), Vent + FVector(0, -4.0, 0), 1.3);
+			Shots.Add(TEXT("vent_pending"));
+		}
+		if (Shots.Contains(TEXT("vent_pending")) && SpectatorUntil > 0.0 && SpectatorUntil - Total < 0.5) { Shot(TEXT("vent_closeup")); }
+		if (Phase == TEXT("popup") && T > 2.5 && !Shots.Contains(TEXT("plant_pending")) && SpectatorUntil < 0.0)
+		{
+			const FVector Pc(OsrLayout::PlantCentre.X, Ground(OsrLayout::PlantCentre.X, OsrLayout::PlantCentre.Y), OsrLayout::PlantCentre.Y);
+			Spectate(Jet, Pc + FVector(-420.0, 190.0, 380.0), Pc + FVector(80.0, 0.0, -150.0), 1.3);
+			Shots.Add(TEXT("plant_pending"));
+		}
+		if (Shots.Contains(TEXT("plant_pending")) && SpectatorUntil > 0.0 && SpectatorUntil - Total < 0.5) { Shot(TEXT("plant_overview")); }
 		const double Gamma = Pos.Y < Ytop - 120.0 ? Rad(22.0) : FMath::Clamp((Ytop - Pos.Y) * 0.004, -0.1, 0.1);
 		Pr = Pilot(Jet, Vent - Pos, Gamma, 235.0);
 		if (Phase == TEXT("popup") && Pos.Y > Ytop - 400.0)
@@ -330,30 +357,38 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 			double BestD = 1e12;
 			for (int32 K = 0; K < Path.Num(); ++K) { const double D = Hdist(Path[K], Pos); if (D < BestD) { BestD = D; PathI = K; } }
 		}
-		Pr = CanyonPilotReverse(Jet, 110.0, 280.0);
-		if ((W->MissilesInbound > 0 || W->IrInbound > 0) && CmAcc < 0.05 && !Shots.Contains(TEXT("flares")) && SpectatorUntil < 0.0)
+		Pr = CanyonPilotReverse(Jet, 150.0, 270.0);
+		if (bFlarePending && !Shots.Contains(TEXT("flares")) && SpectatorUntil < 0.0 && LookBackT < 0.0)
 		{
-			Ap.bLookBack = true;
+			W->CmdFlare();
+			LookBackT = 0.0;
 		}
-		if (Ap.bLookBack && CmAcc > 0.45) { Shot(TEXT("flares")); }
-		if (Ap.bLookBack && CmAcc > 0.7) { Ap.bLookBack = false; }
+		if (LookBackT >= 0.0)
+		{
+			LookBackT += Dt;
+			Ap.bLookBack = true;
+			if (LookBackT > 0.6) { Shot(TEXT("flares")); }
+			if (LookBackT > 0.9) { Ap.bLookBack = false; LookBackT = -99.0; }
+		}
 		// a SAM in flight: side view of it once
 		if (!Shots.Contains(TEXT("sam_launch")) && SpectatorUntil < 0.0)
 		{
 			for (TActorIterator<AOsrMissile> It(Ms->GetWorld()); It; ++It)
 			{
-				if (It->bAlive && !It->bIr() && It->Age > 1.5 && It->Age < 6.0)
+				if (It->bAlive && !It->bIr() && It->Age > 0.2 && It->Age < 0.6)
 				{
 					const FVector Vh = It->V.GetSafeNormal();
 					const FVector Side = FVector::CrossProduct(Vh, FVector(0, 1, 0)).GetSafeNormal();
-					Spectate(Jet, It->P - Vh * 45.0 + Side * 22.0, It->P + Vh * 30.0, 1.2);
+					const FVector Cam = It->P - Side * 140.0 + FVector(0, 25.0, 0) - Flat(Vh) * 60.0;
+					Spectate(Jet, Cam, It->P, 1.6);
 					SpecFollow = *It;
+					bSpecFixed = true;
 					Shots.Add(TEXT("sam_pending"));
 					break;
 				}
 			}
 		}
-		if (Shots.Contains(TEXT("sam_pending")) && SpectatorUntil > 0.0 && SpectatorUntil - Total < 0.5) { Shot(TEXT("sam_launch")); }
+		if (Shots.Contains(TEXT("sam_pending")) && SpectatorUntil > 0.0 && SpectatorUntil - Total < 0.7) { Shot(TEXT("sam_launch")); }
 		// the fighters: chase view of one
 		if (!Shots.Contains(TEXT("fighters")) && SpectatorUntil < 0.0)
 		{

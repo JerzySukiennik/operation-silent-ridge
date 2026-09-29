@@ -3,6 +3,9 @@
 #include "OsrTerrain.h"
 #include "Materials/MaterialInterface.h"
 #include "UObject/UObjectGlobals.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "EngineUtils.h"
+#include "Engine/World.h"
 
 namespace OsrMission
 {
@@ -61,6 +64,36 @@ bool RayTerrain(const FVector& Origin, const FVector& Dir, double MaxDist, FVect
 		PrevM = M;
 	}
 	return false;
+}
+
+void ClearVegetation(UWorld* W, const TArray<FVector4>& Spheres)
+{
+	if (!W || Spheres.Num() == 0) { return; }
+	int32 Removed = 0;
+	for (TActorIterator<AActor> It(W); It; ++It)
+	{
+		TInlineComponentArray<UInstancedStaticMeshComponent*> Isms;
+		It->GetComponents(Isms);
+		for (UInstancedStaticMeshComponent* C : Isms)
+		{
+			if (!C || C->GetInstanceCount() == 0 || !C->GetStaticMesh()) { continue; }
+			const FString Mesh = C->GetStaticMesh()->GetName().ToLower();
+			if (!Mesh.Contains(TEXT("fir")) && !Mesh.Contains(TEXT("rock")) && !Mesh.Contains(TEXT("boulder")) && !Mesh.Contains(TEXT("cliff"))) { continue; }
+			TArray<int32> Kill;
+			for (const FVector4& S : Spheres)
+			{
+				const FVector Cu = ToUE(FVector(S.X, S.Y, S.Z));
+				if (!C->Bounds.GetBox().ExpandBy(S.W * 100.0).IsInside(Cu)) { continue; }
+				Kill.Append(C->GetInstancesOverlappingSphere(Cu, float(S.W * 100.0), true));
+			}
+			if (Kill.Num() == 0) { continue; }
+			Kill.Sort();
+			for (int32 K = Kill.Num() - 1; K > 0; --K) { if (Kill[K] == Kill[K - 1]) { Kill.RemoveAt(K); } }
+			C->RemoveInstances(Kill);
+			Removed += Kill.Num();
+		}
+	}
+	UE_LOG(LogTemp, Display, TEXT("OSR mission: cleared %d tree/rock instances in %d zones"), Removed, Spheres.Num());
 }
 
 UMaterialInterface* LitMaterial()

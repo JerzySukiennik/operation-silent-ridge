@@ -11,12 +11,12 @@ using namespace OsrMission;
 
 namespace
 {
-	const FLinearColor CONCRETE = Rgb(152, 149, 140);
-	const FLinearColor CONCRETE_DK = Rgb(112, 110, 104);
+	const FLinearColor CONCRETE = Rgb(122, 119, 111);
+	const FLinearColor CONCRETE_DK = Rgb(88, 86, 80);
 	const FLinearColor STEEL = Rgb(74, 82, 74);
 	const FLinearColor DARK = Rgb(14, 15, 16);
 	const FLinearColor WINDOW = Rgb(26, 32, 38);
-	const FLinearColor ROOF = Rgb(96, 96, 94);
+	const FLinearColor ROOF = Rgb(64, 70, 62);
 	const FLinearColor RUST = Rgb(120, 72, 48);
 	const FLinearColor RED = Rgb(170, 40, 32);
 	const FLinearColor WHITE = Rgb(220, 220, 214);
@@ -170,10 +170,10 @@ void AOsrMissionTarget::Build()
 		Stacks.Add(FVector(S.X, G - 2.0 + 51.0, S.Y));
 		AddHit(FVector(S.X, G + 24.0, S.Y), 0.0, FVector(2.8, 26.0, 2.8), TEXT("STACK"));
 	}
-	Building(FVector2D(11385, -2475), Yv, 44, 16, 11, Rgb(170, 164, 150), TEXT("ADMIN"), 3);
-	Building(FVector2D(11060, -2525), Yv, 36, 22, 9, Rgb(128, 134, 124), TEXT("WAREHOUSE"), 0);
-	Building(FVector2D(11095, -2445), Yv, 30, 18, 8, Rgb(128, 134, 124), TEXT("WAREHOUSE"), 0);
-	for (int32 K = 0; K < 3; ++K) { Building(FVector2D(11255, -2455 + K * 26.0), Yv, 30, 10, 6, Rgb(150, 146, 128), TEXT("BARRACKS"), 1); }
+	Building(FVector2D(11385, -2475), Yv, 44, 16, 11, Rgb(132, 124, 108), TEXT("ADMIN"), 3);
+	Building(FVector2D(11060, -2525), Yv, 36, 22, 9, Rgb(96, 104, 92), TEXT("WAREHOUSE"), 0);
+	Building(FVector2D(11095, -2445), Yv, 30, 18, 8, Rgb(96, 104, 92), TEXT("WAREHOUSE"), 0);
+	for (int32 K = 0; K < 3; ++K) { Building(FVector2D(11255, -2455 + K * 26.0), Yv, 30, 10, 6, Rgb(118, 112, 94), TEXT("BARRACKS"), 1); }
 	// fuel tanks with a berm
 	{
 		const FVector2D C(11005, -2610);
@@ -183,7 +183,7 @@ void AOsrMissionTarget::Build()
 		{
 			const FVector2D T = C + FVector2D((K - 1) * 15.0, (K == 1 ? -6.0 : 5.0));
 			const double Gt = Ground(T.X, T.Y);
-			M.Cylinder(L(FVector(T.X, Gt - 1.0, T.Y)), FVector(0, 1, 0), 10.0, 6.0, 6.0, 20, Rgb(188, 190, 184));
+			M.Cylinder(L(FVector(T.X, Gt - 1.0, T.Y)), FVector(0, 1, 0), 10.0, 6.0, 6.0, 20, Rgb(150, 152, 146));
 			AddHit(FVector(T.X, Gt + 4.0, T.Y), 0.0, FVector(6, 5, 6), TEXT("FUEL TANK"));
 		}
 	}
@@ -385,6 +385,24 @@ void AOsrMissionTarget::Build()
 		}
 		TrackPts.Insert({VentCentre, TEXT("VENT SHAFT")}, 0);
 	}
+	// cleared ground: the fenced complex, roads, portal aprons, the vent terrace
+	ClearZones.Reset();
+	for (double X = 10960.0; X <= 11570.0; X += 45.0)
+	{
+		for (double Z = -2690.0; Z <= -2350.0; Z += 45.0) { ClearZones.Add(FVector4(X, Ground(X, Z), Z, 40.0)); }
+	}
+	auto RoadZones = [this](const TArray<FVector2D>& Pts, double R)
+	{
+		for (int32 K = 0; K + 1 < Pts.Num(); ++K)
+		{
+			const int32 N = FMath::Max(1, int32(FVector2D::Distance(Pts[K], Pts[K + 1]) / (R * 0.8)));
+			for (int32 I = 0; I <= N; ++I) { const FVector2D P = FMath::Lerp(Pts[K], Pts[K + 1], double(I) / N); ClearZones.Add(FVector4(P.X, Ground(P.X, P.Y), P.Y, R)); }
+		}
+	};
+	RoadZones({FVector2D(10700, -2470), FVector2D(10960, -2500), FVector2D(11300, -2530), FVector2D(11500, -2560), FVector2D(11750, -2540), FVector2D(12100, -2560)}, 12.0);
+	RoadZones({FVector2D(11500, -2560), FVector2D(11500, -2700), FVector2D(11490, -2950), FVector2D(11500, -3200), FVector2D(11500, -3300)}, 12.0);
+	for (const FVector& Mo : PortalMouths) { ClearZones.Add(FVector4(Mo.X, Mo.Y, Mo.Z, 50.0)); }
+	ClearZones.Add(FVector4(VentCentre.X, VentCentre.Y, VentCentre.Z, 32.0));
 	M.Commit(Pmc, 0, LitMaterial());
 	D.Commit(Doors, 0, LitMaterial());
 	Doors->SetVisibility(true);
@@ -470,7 +488,7 @@ void AOsrMissionTarget::Tick(float DeltaSeconds)
 			Fx->Explosion(VentCentre + FVector(0, 6, 0), EOsrBlast::Huge, FVector(0, 1, 0));
 			for (int32 K = 0; K < 14; ++K)
 			{
-				Fx->Puff(VentCentre, FVector(R.FRandRange(-8, 8), R.FRandRange(60, 140), R.FRandRange(-8, 8)), R.FRandRange(1.2, 2.2), 4.0, 22.0, FLinearColor(1.0f, 0.5f, 0.15f) * 10.0f, 1.0, true, 0.8, 0.0);
+				Fx->Puff(VentCentre, FVector(R.FRandRange(-8, 8), R.FRandRange(60, 140), R.FRandRange(-8, 8)), R.FRandRange(1.2, 2.2), 4.0, 22.0, FLinearColor(1.0f, 0.5f, 0.15f) * 4.0f, 1.0, true, 0.8, 0.0);
 			}
 		}
 		else if (W == 1 || W == 2)
@@ -483,7 +501,7 @@ void AOsrMissionTarget::Tick(float DeltaSeconds)
 				for (int32 K = 0; K < 16; ++K)
 				{
 					const FVector V = (Out * R.FRandRange(60, 160)) + FVector(R.FRandRange(-12, 12), R.FRandRange(-4, 20), R.FRandRange(-12, 12));
-					Fx->Puff(Mo, V, R.FRandRange(1.0, 2.0), 3.0, 18.0, FLinearColor(1.0f, 0.5f, 0.15f) * 10.0f, 1.0, true, 1.6, 2.0);
+					Fx->Puff(Mo, V, R.FRandRange(1.0, 2.0), 3.0, 18.0, FLinearColor(1.0f, 0.5f, 0.15f) * 4.0f, 1.0, true, 1.6, 2.0);
 				}
 				if (W == 1) { Doors->SetVisibility(false); }
 			}
@@ -513,6 +531,6 @@ void AOsrMissionTarget::Tick(float DeltaSeconds)
 				Fx->Puff(PortalMouths[I] + PortalOut[I] * 6.0, PortalOut[I] * 8.0 + FVector(0, 10, 0), 12.0, 5.0, 40.0, FLinearColor(G, G, G), 0.6 * Fade, false, 0.2, 1.5);
 			}
 		}
-		if (T < 20.0) { Fx->Puff(VentCentre + FVector(0, 2, 0), FVector(0, R.FRandRange(20, 40), 0), 0.8, 3.0, 9.0, FLinearColor(1.0f, 0.45f, 0.12f) * 8.0f, 0.9 * (1.0 - T / 20.0), true, 0.5, 0.0); }
+		if (T < 20.0) { Fx->Puff(VentCentre + FVector(0, 2, 0), FVector(0, R.FRandRange(20, 40), 0), 0.8, 3.0, 9.0, FLinearColor(1.0f, 0.45f, 0.12f) * 4.0f, 0.9 * (1.0 - T / 20.0), true, 0.5, 0.0); }
 	}
 }

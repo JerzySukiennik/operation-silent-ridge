@@ -447,7 +447,7 @@ void UOsrWeaponsComponent::UpdateGun(double Dt)
 			if (bTr && Fx) { Fx->Tracer(Muzzle, J->Model.Velocity + D * MUZZLE_V, 2.5); }
 		}
 		if (AOsrMissionState* Ms = AOsrMissionState::Get(this)) { Ms->Stats.RoundsFired = GUN_MAX - GunRounds; }
-		if (Fx) { Fx->Puff(Muzzle + Fwd * 1.5, J->Model.Velocity, 0.05, 0.4, 1.0, FLinearColor(1.0f, 0.7f, 0.35f) * 20.0f, 0.9, true, 0.0); }
+		if (Fx) { Fx->Puff(Muzzle + Fwd * 1.5, J->Model.Velocity, 0.05, 0.4, 1.0, FLinearColor(1.0f, 0.7f, 0.35f) * 8.0f, 0.9, true, 0.0); }
 	}
 	else
 	{
@@ -499,8 +499,8 @@ void UOsrWeaponsComponent::UpdateTgp(double Dt)
 	bLasing = (bLaserArm || bAutoLase) && bTgpValid && !bMasked && J->bAlive && Range < 25000.0 && LineOfSight(Pod, TgpPoint + FVector(0, 1.0, 0), 0.5);
 	if (AOsrMissionState* Ms = AOsrMissionState::Get(this)) { Ms->SetLaser(J, LaserCode, bLasing, Pod, TgpPoint); }
 	// camera
-	TgpCamPos = Pod;
 	TgpCamFwd = bTgpValid ? (TgpPoint - Pod).GetSafeNormal() : Nose(J->RenderRot);
+	TgpCamPos = Pod + TgpCamFwd * 25.0;   // the real EOTS window sits outside the airframe: keep our own mesh out of the view
 	TgpCamUp = FVector(0, 1, 0);
 	if (!IsLocal()) { return; }
 	APlayerController* PC = Cast<APlayerController>(J->GetController());

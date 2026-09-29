@@ -290,7 +290,7 @@ void AOsrMissile::Tick(float DeltaSeconds)
 		if (bBurningNow || (Kind == EOsrMissileKind::AAM_IR && Age < Burn + 1.0))
 		{
 			Fx->TrailPoint(Trail, P - V.GetSafeNormal() * 3.0);
-			Fx->Puff(P - V.GetSafeNormal() * 2.4, -V * 0.05, 0.06, 0.5, 1.4, FLinearColor(1.0f, 0.8f, 0.5f) * 30.0f, 1.0, true, 0.0);
+			Fx->Puff(P - V.GetSafeNormal() * 2.4, -V * 0.05, 0.06, 0.5, 1.4, FLinearColor(1.0f, 0.8f, 0.5f) * 12.0f, 1.0, true, 0.0);
 		}
 		else if (Age < Burn + 1.2)
 		{

@@ -47,7 +47,7 @@ void AOsrEnemyAirbase::Build()
 	const double Len = OsrLayout::RunwayLength, Hw = OsrLayout::RunwayWidth * 0.5;
 	FMeshBuilder M;
 	auto L = [this](const FVector& W) { return W - Centre; };
-	const FLinearColor Asphalt = NoSnow(Rgb(56, 57, 60)), Paint = NoSnow(Rgb(225, 225, 220)), Concrete = Rgb(150, 148, 142), ConcreteNs = NoSnow(Rgb(120, 119, 115));
+	const FLinearColor Asphalt = NoSnow(Rgb(56, 57, 60)), Paint = NoSnow(Rgb(225, 225, 220)), Concrete = Rgb(118, 116, 110), ConcreteNs = NoSnow(Rgb(96, 95, 91));
 
 	// ---- runway profile: max ground across the width, max-filtered and smoothed along the length
 	const int32 N = int32(Len / 20.0);
@@ -160,7 +160,7 @@ void AOsrEnemyAirbase::Build()
 		double Lo = 1e9, Hi = -1e9;
 		for (int32 I = -2; I <= 2; ++I) { const FVector Q = P + S * (I * 10.0); const double G = Ground(Q.X, Q.Z); Lo = FMath::Min(Lo, G); Hi = FMath::Max(Hi, G); }
 		M.Box(L(FVector(P.X, (Lo - 2.0 + Hi + 0.2) * 0.5, P.Z)), S, FVector(0, 1, 0), D, FVector(22.0, (Hi + 0.2 - Lo + 2.0) * 0.5, 11.0), ConcreteNs, false);
-		M.Arch(L(FVector(P.X, Hi + 0.2, P.Z)), ShelterYaw, 10.0, 40.0, 0.85, 12, Rgb(136, 140, 138), true);
+		M.Arch(L(FVector(P.X, Hi + 0.2, P.Z)), ShelterYaw, 10.0, 40.0, 0.85, 12, Rgb(92, 98, 94), true);
 	}
 	{
 		const FVector P = Centre + S * 250.0 + D * (-240.0);
@@ -176,6 +176,15 @@ void AOsrEnemyAirbase::Build()
 		const FVector P = Centre + S * (470.0 + (K % 2) * 22.0) + D * (-420.0 + (K / 2) * 22.0);
 		const double G = Ground(P.X, P.Z);
 		M.Cylinder(L(FVector(P.X, G - 1.0, P.Z)), FVector(0, 1, 0), 9.0, 7.0, 7.0, 18, Rgb(186, 188, 180));
+	}
+	ClearZones.Reset();
+	for (double A = -Len * 0.5 - 60.0; A <= Len * 0.5 + 60.0; A += 50.0)
+	{
+		for (double O : {0.0, 60.0, 120.0, 170.0}) { const FVector P = Centre + D * A + S * O; ClearZones.Add(FVector4(P.X, Ground(P.X, P.Z), P.Z, 45.0)); }
+	}
+	for (double A = -500.0; A <= 520.0; A += 70.0)
+	{
+		for (double O : {240.0, 310.0, 380.0, 450.0}) { const FVector P = Centre + D * A + S * O; ClearZones.Add(FVector4(P.X, Ground(P.X, P.Z), P.Z, 55.0)); }
 	}
 	M.Commit(Pmc, 0, LitMaterial());
 	// the Su-57 pair parked in front of the two middle shelters

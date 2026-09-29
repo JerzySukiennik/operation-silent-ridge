@@ -150,16 +150,16 @@ void AOsrMissionFx::Explosion(const FVector& P, EOsrBlast Kind, const FVector& N
 	default: break;
 	}
 	const FVector Up = Normal.GetSafeNormal();
-	const bool bSnowy = P.Y > 700.0 && Kind != EOsrBlast::Missile && Kind != EOsrBlast::Aircraft;
+	const bool bSnowy = P.Y > 1300.0 && Kind != EOsrBlast::Missile && Kind != EOsrBlast::Aircraft;
 	for (int32 K = 0; K < Fire; ++K)
 	{
 		const FVector D = (Up * 0.8 + FVector(Rng.FRandRange(-1, 1), Rng.FRandRange(-0.3, 1), Rng.FRandRange(-1, 1))).GetSafeNormal();
 		const double Sp = Rng.FRandRange(8.0, 30.0) * Scale;
 		const FLinearColor C = FMath::Lerp(FLinearColor(1.0f, 0.62f, 0.25f), FLinearColor(1.0f, 0.35f, 0.08f), Rng.FRand());
-		Puff(P + D * 2.0 * Scale, D * Sp, Rng.FRandRange(0.7, 1.4) * FMath::Sqrt(Scale), 5.0 * Scale, Rng.FRandRange(14.0, 24.0) * Scale, C * 9.0f, 0.95, true, 2.5, 4.0);
+		Puff(P + D * 2.0 * Scale, D * Sp, Rng.FRandRange(0.7, 1.4) * FMath::Sqrt(Scale), 5.0 * Scale, Rng.FRandRange(14.0, 24.0) * Scale, C * 4.0f, 0.9, true, 2.5, 4.0);
 	}
 	// bright core flash
-	Puff(P, FVector::ZeroVector, 0.18, 10.0 * Scale, 30.0 * Scale, FLinearColor(1.0f, 0.85f, 0.6f) * 30.0f, 1.0, true, 0.0);
+	Puff(P, FVector::ZeroVector, 0.18, 10.0 * Scale, 30.0 * Scale, FLinearColor(1.0f, 0.85f, 0.6f) * 10.0f, 1.0, true, 0.0);
 	for (int32 K = 0; K < Smoke; ++K)
 	{
 		const FVector D = (Up + FVector(Rng.FRandRange(-0.7, 0.7), Rng.FRandRange(0.0, 0.8), Rng.FRandRange(-0.7, 0.7))).GetSafeNormal();
@@ -167,20 +167,20 @@ void AOsrMissionFx::Explosion(const FVector& P, EOsrBlast Kind, const FVector& N
 		Puff(P + D * 4.0 * Scale, D * Rng.FRandRange(4.0, 14.0) * Scale, Rng.FRandRange(6.0, 12.0) * Scale, 8.0 * Scale, Rng.FRandRange(30.0, 55.0) * Scale,
 			FLinearColor(G, G * 0.95f, G * 0.9f), 0.8, false, 0.6, 3.0 * Scale);
 	}
-	if (bSnowy || Kind == EOsrBlast::Bomb || Kind == EOsrBlast::Huge)
+	if (Kind == EOsrBlast::Bomb || Kind == EOsrBlast::Huge || Kind == EOsrBlast::Secondary)
 	{
 		// thrown snow/earth: pale, heavy, falls back
 		for (int32 K = 0; K < 10; ++K)
 		{
 			const FVector D = (Up * 1.2 + FVector(Rng.FRandRange(-1, 1), 0.0, Rng.FRandRange(-1, 1))).GetSafeNormal();
-			const float G = bSnowy ? 0.75f : 0.35f;
-			Puff(P, D * Rng.FRandRange(15.0, 45.0) * Scale, Rng.FRandRange(2.5, 5.0), 4.0 * Scale, 26.0 * Scale, FLinearColor(G, G, G * 1.02f), 0.75, false, 1.2, -6.0);
+			const float G = bSnowy ? 0.7f : 0.22f;
+			Puff(P, D * Rng.FRandRange(15.0, 45.0) * FMath::Sqrt(Scale), Rng.FRandRange(2.0, 4.0), 3.0 * Scale, 14.0 * Scale, FLinearColor(G, G * 0.94f, G * 0.86f), 0.7, false, 1.2, -6.0);
 		}
 	}
 	for (int32 K = 0; K < Sparks; ++K)
 	{
 		const FVector D = (Up * 0.6 + FVector(Rng.FRandRange(-1, 1), Rng.FRandRange(-0.2, 1), Rng.FRandRange(-1, 1))).GetSafeNormal();
-		Puff(P, D * Rng.FRandRange(40.0, 110.0) * FMath::Sqrt(Scale), Rng.FRandRange(0.6, 1.6), 0.9 * Scale, 0.3, FLinearColor(1.0f, 0.55f, 0.2f) * 20.0f, 1.0, true, 0.4, -9.0);
+		Puff(P, D * Rng.FRandRange(40.0, 110.0) * FMath::Sqrt(Scale), Rng.FRandRange(0.6, 1.6), 0.9 * Scale, 0.3, FLinearColor(1.0f, 0.55f, 0.2f) * 8.0f, 1.0, true, 0.4, -9.0);
 	}
 	Flash(P + Up * 6.0, 4.0e6 * Scale * Scale, 0.35 + 0.2 * Scale, FLinearColor(1.0f, 0.6f, 0.3f));
 	SoundAt(Snd, P, Kind == EOsrBlast::Small ? -6.0 : 2.0);
@@ -196,7 +196,7 @@ void AOsrMissionFx::GroundImpact(const FVector& P, bool bSnow, double Scale)
 		const FVector D = FVector(Rng.FRandRange(-0.5, 0.5), 1.0, Rng.FRandRange(-0.5, 0.5)).GetSafeNormal();
 		Puff(P, D * Rng.FRandRange(6.0, 16.0) * Scale, Rng.FRandRange(0.8, 1.6), 0.8 * Scale, Rng.FRandRange(3.0, 5.0) * Scale, FLinearColor(G, G, G), 0.8, false, 1.5, -3.0);
 	}
-	Puff(P, FVector(0, 2, 0), 0.08, 0.6 * Scale, 2.0 * Scale, FLinearColor(1.0f, 0.7f, 0.35f) * 12.0f, 1.0, true, 0.0);
+	Puff(P, FVector(0, 2, 0), 0.08, 0.6 * Scale, 2.0 * Scale, FLinearColor(1.0f, 0.7f, 0.35f) * 6.0f, 1.0, true, 0.0);
 }
 
 void AOsrMissionFx::Tracer(const FVector& P, const FVector& V, double Life)
@@ -385,7 +385,7 @@ void AOsrMissionFx::Rebuild()
 		const FVector ToCam = (Cam - T.P).GetSafeNormal();
 		const FVector Side = FVector::CrossProduct(Dir, ToCam).GetSafeNormal() * 0.35;
 		const FVector A0 = T.P - Dir * Len - Anchor, A1 = T.P - Anchor;
-		const FLinearColor C = FLinearColor(1.0f, 0.75f, 0.4f, 1.0f) * 25.0f;
+		const FLinearColor C = FLinearColor(1.0f, 0.75f, 0.4f, 1.0f) * 10.0f;
 		FLinearColor Ca = C; Ca.A = float(1.0 - Sm(0.8, 1.0, T.Age / T.Life));
 		FMeshBuilder& M = B[1];
 		const int32 K0 = M.Vert(A0 - Side, ToCam, FVector2D(0, 0.1), Ca);

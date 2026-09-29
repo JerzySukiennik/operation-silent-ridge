@@ -26,7 +26,8 @@ float n2 = Texture2DSample(Noise, NoiseSampler, wp.xz * 0.043 + wp.yz * 0.043 + 
 float n = n1 * 0.6 + n2 * 0.4;
 float3 base = VC * Color.rgb * (0.8 + 0.4 * n);
 float up = saturate((N.z - 0.6) / 0.3);
-float snow = saturate(up * VA * SnowAmount * saturate(n * 1.6 + 0.1));
+float alt = saturate((wp.z - 1150.0) / 350.0);            // snow only above the valley snowline (matches the terrain)
+float snow = saturate(up * VA * SnowAmount * alt * saturate(n * 1.6 + 0.1));
 Rough = lerp(Roughness, 0.6, snow);
 return lerp(base, float3(0.82, 0.85, 0.9), snow);
 """

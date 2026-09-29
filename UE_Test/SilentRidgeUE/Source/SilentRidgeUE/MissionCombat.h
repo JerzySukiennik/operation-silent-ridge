@@ -35,6 +35,8 @@ public:
 	bool bDead = false;
 	bool bAirTarget = false;
 	FString DisplayName;
+	/** Ground to clear of placed trees/rocks (Godot x, y, z, radius m). */
+	TArray<FVector4> ClearZones;
 
 	virtual FVector PosG() const;
 	virtual FVector VelG() const { return FVector::ZeroVector; }

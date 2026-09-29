@@ -110,6 +110,9 @@ void AOsrMissionState::EnsureWorld()
 	Site(EOsrSiteType::Pantsir, OsrLayout::PantsirB, FVector2D(10000.0, -1600.0));
 	Site(EOsrSiteType::Tor, OsrLayout::TorAirbase, Vent);
 	W->SpawnActor<AOsrEnemyAirbase>(AOsrEnemyAirbase::StaticClass(), FTransform::Identity, Sp);
+	TArray<FVector4> Zones;
+	for (TActorIterator<AOsrDamageable> It(W); It; ++It) { Zones.Append(It->ClearZones); }
+	ClearVegetation(W, Zones);
 	Radio(TEXT("WATCHTOWER"), TEXT("Ridge 1, Watchtower. Mission is go: canyon ingress, vent shaft, laser-guided bombs. Read the briefing."), NAME_None, 7.0);
 }
 
@@ -334,7 +337,7 @@ void AOsrMissionState::UpdateDecoys(double Dt)
 		if (Fx && D.bFlare)
 		{
 			const double Burn = 1.0 - FMath::Clamp((D.Age - D.Life + 0.8) / 0.8, 0.0, 1.0);
-			Fx->Puff(D.P, FVector::ZeroVector, 0.07, 1.4, 2.4, FLinearColor(1.0f, 0.92f, 0.75f) * float(40.0 * Burn), 1.0, true, 0.0);
+			Fx->Puff(D.P, FVector::ZeroVector, 0.07, 1.4, 2.4, FLinearColor(1.0f, 0.92f, 0.75f) * float(18.0 * Burn), 1.0, true, 0.0);
 			Fx->TrailPoint(D.TrailId, D.P);
 		}
 	}

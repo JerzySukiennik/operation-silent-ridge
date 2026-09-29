@@ -249,6 +249,8 @@ void AOsrRadarSite::BuildMesh()
 		break;
 	}
 	}
+	ClearZones.Reset();
+	ClearZones.Add(FVector4(Base.X, Base.Y, Base.Z, Type == EOsrSiteType::S400 ? 110.0 : 35.0));
 	M.Commit(Pmc, 0, LitMaterial());
 	R.Commit(Rotor, 0, LitMaterial());
 	if (Launchers.Num() == 0) { Launchers.Add(Antenna + FVector(0, -2.0, 0)); }

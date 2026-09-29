@@ -31,6 +31,10 @@ namespace OsrMission
 	/** Angle (rad) between two directions. */
 	inline double AngleBetween(const FVector& A, const FVector& B) { return FMath::Acos(FMath::Clamp(FVector::DotProduct(A.GetSafeNormal(), B.GetSafeNormal()), -1.0, 1.0)); }
 
+	/** Removes placed trees / rock scans (instanced static meshes of the world build) inside Godot-frame spheres (x, y, z, radius):
+	 *  the plant, SAM sites and the airbase stand on cleared ground. */
+	void ClearVegetation(UWorld* W, const TArray<FVector4>& Spheres);
+
 	UMaterialInterface* LitMaterial();        // /Game/Mission/M_MissionLit (vertex colour x Color, snow on top faces)
 	UMaterialInterface* PuffMaterial(bool bAdditive);   // /Game/Mission/M_MissionPuffAdd / Tr (soft round sprites, ribbons)
 
