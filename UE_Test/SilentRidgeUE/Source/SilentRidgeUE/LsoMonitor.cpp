@@ -65,7 +65,7 @@ bool FLsoMonitor::Update(const FLsoInput& In, double Now)
 		LastCallKey = TEXT("rogerball");
 		Say(TEXT("LSO"), TEXT("Roger ball."), FName(TEXT("lso_roger_ball")), Now + 1.4);
 	}
-	if (R < BallCallM)
+	if (R < BallCallM && R > 25.0)
 	{
 		FPhase& P = Ph[PhaseOf(R)];
 		P.MaxHi = FMath::Max(P.MaxHi, In.GsDevDeg);
@@ -98,7 +98,7 @@ bool FLsoMonitor::Update(const FLsoInput& In, double Now)
 	}
 	if (bWaveOff) { return true; }
 	if (!In.bHook && R < 950.0 && R > 420.0) { Call(TEXT("hook"), TEXT("Hook down!"), FName(TEXT("lso_hook")), Now); }
-	else if (bBallCalled && R > 40.0)
+	else if (bBallCalled && R > 70.0)
 	{
 		if (In.GsDevDeg < -0.75) { Call(TEXT("power"), TEXT("Power!"), FName(TEXT("lso_power")), Now, 1.6); }
 		else if (In.GsDevDeg < -0.42) { Call(TEXT("low"), TEXT("You're low."), FName(TEXT("lso_low")), Now); }

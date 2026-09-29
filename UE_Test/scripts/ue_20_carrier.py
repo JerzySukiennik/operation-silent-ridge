@@ -159,8 +159,10 @@ if (Harness > 0.5 && p.z > 100.0 && p.z < 142.0 && ax < 23.0 && (abs(p.x - p.y *
 Rough = r;
 return col;
 """, ["PS", "Torso", "Pants", "Gloves", "Stripes", "GSuit", "Harness"], [("Rough", CMOT.CMOT_FLOAT1)])
-    ps = MEL.create_material_expression(m, unreal.MaterialExpressionPreSkinnedPosition, -900, -200)
-    conn(ps, "", c, "PS")
+    ps = MEL.create_material_expression(m, unreal.MaterialExpressionPreSkinnedPosition, -1200, -200)
+    vi = MEL.create_material_expression(m, unreal.MaterialExpressionVertexInterpolator, -1000, -200)   # pre-skinned position is vertex-only
+    conn(ps, "", vi, "")
+    conn(vi, "", c, "PS")
     for k, (pn, dv) in enumerate([("Torso", (0.8, 0.62, 0.05)), ("Pants", (0.03, 0.04, 0.08)), ("Gloves", (0.1, 0.08, 0.05))]):
         v = MEL.create_material_expression(m, unreal.MaterialExpressionVectorParameter, -900, -100 + k * 80)
         v.set_editor_property("parameter_name", pn); v.set_editor_property("default_value", unreal.LinearColor(*dv, 1))

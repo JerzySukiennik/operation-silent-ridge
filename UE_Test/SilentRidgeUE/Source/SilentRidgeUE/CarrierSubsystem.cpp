@@ -235,7 +235,7 @@ void UCarrierSubsystem::AutoApproach(double Dt)
 	const double BankDes = FMath::Clamp(-(0.6 * Lat + 2.2 * LatRate), -18.0, 18.0);
 	const FF35FlightModel& M = Jet->Model;
 	Ap.Roll = FMath::Clamp((FMath::DegreesToRadians(BankDes) - M.Bank) * 2.5 - M.Rates.Z * 0.25, -1.0, 1.0);
-	Ap.Pitch = FMath::Clamp(-Ops->Lso.BallDev * 0.9, -0.6, 0.6);
+	Ap.Pitch = Ops->Lso.bActive ? FMath::Clamp(-Ops->Lso.BallDev * 0.8, -0.5, 0.5) : 0.0;
 	Ap.Yaw = 0.0;
 	Ap.Throttle = FMath::Min(Jet->AutopilotLever, 1.0);
 	Ap.Afterburner = 0.0;
@@ -251,7 +251,51 @@ void UCarrierSubsystem::Autotest(double Dt)
 	if (Phase == TEXT("setup"))
 	{
 		if (T > 3.0) { Shot(TEXT("deck_on_foot"), 0); }
-		if (T > 3.6) { Phase = TEXT("walk"); T = 0.0; }
+		if (T > 3.6) { Phase = FParse::Param(FCommandLine::Get(), TEXT("noelevator")) ? TEXT("walk") : TEXT("elevator"); T = 0.0; }
+	}
+	else if (Phase == TEXT("elevator"))
+	{
+		// ride elevator 2 down to the hangar deck, walk in, walk back, ride up (based movement on a moving platform)
+		FramesDeck.Add(float(Dt));
+		const CarrierLayout::FElevator& E = CarrierLayout::Elevators[1];
+		const FVector PlatC((E.X0 + E.X1) * 0.5, (E.Y0 + E.Y1) * 0.5 + 3.0, 0.0);
+		const double Yin = Carrier->Pose().YawDeg - 90.0;   // facing inboard (port)
+		const FVector Inboard = FRotator(0.0, Yin, 0.0).Vector();
+		if (Foot)
+		{
+			Foot->bAutoDrive = true;
+			Foot->AutoMoveWorld = FVector::ZeroVector;
+			if (T < Dt * 1.5)
+			{
+				Foot->SetActorLocation(Carrier->LocalToUE(FVector(PlatC.X, PlatC.Y, CarrierLayout::DeckZ + 1.0)), false, nullptr, ETeleportType::ResetPhysics);
+				PC->SetControlRotation(FRotator(-10.0, Yin, 0.0));
+			}
+			if (T > 1.0 && T < 1.2) { Carrier->CommandElevator(true); }
+			if (T > 14.0 && T < 18.0) { Foot->AutoMoveWorld = Inboard; PC->SetControlRotation(FRotator(-5.0, Yin, 0.0)); }
+			if (T > 18.5) { Shot(TEXT("hangar"), 11); }
+			if (T > 18.6 && T - Dt <= 18.6)
+			{
+				const FVector L = Carrier->UEToLocal(Foot->GetActorLocation());
+				UE_LOG(LogTemp, Display, TEXT("REPORT carrier_hangar_walk local=(%.1f, %.1f, %.2f) elevator_down=%s in_hangar=%s"), L.X, L.Y, L.Z,
+					Carrier->IsElevatorDown() ? TEXT("true") : TEXT("false"), L.Z < CarrierLayout::HangarCeil && L.Y < CarrierLayout::Hangar.Max.Y ? TEXT("true") : TEXT("false"));
+			}
+			if (T > 19.0 && T < 23.5)
+			{
+				const FVector Goal = Carrier->LocalToUE(FVector(PlatC.X, PlatC.Y, CarrierLayout::HangarFloor + 1.0));
+				FVector To = Goal - Foot->GetActorLocation(); To.Z = 0.0;
+				Foot->AutoMoveWorld = To.Size() > 60.0 ? To.GetSafeNormal() : FVector::ZeroVector;
+			}
+			if (T > 24.0 && T < 24.2) { Carrier->CommandElevator(false); }
+			if (T > 37.0)
+			{
+				const FVector L = Carrier->UEToLocal(Foot->GetActorLocation());
+				UE_LOG(LogTemp, Display, TEXT("REPORT carrier_elevator_up local_z=%.2f deck_z=%.1f on_deck=%s"), L.Z, CarrierLayout::DeckZ, FMath::Abs(L.Z - CarrierLayout::DeckZ - 0.92) < 0.5 ? TEXT("true") : TEXT("false"));
+				Shot(TEXT("elevator_up"), 12);
+				Phase = TEXT("walk");
+				T = 0.0;
+			}
+		}
+		else { Phase = TEXT("walk"); T = 0.0; }
 	}
 	else if (Phase == TEXT("walk"))
 	{

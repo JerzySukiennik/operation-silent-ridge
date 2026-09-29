@@ -729,7 +729,9 @@ void UCarrierJetOps::UpdateLso(double Dt)
 		const double Along = S.X * D.X + S.Y * D.Y, Lat = S.X * N.X + S.Y * N.Y;
 		FLsoInput In;
 		In.RangeM = -Along;
-		In.GsDevDeg = FMath::RadiansToDegrees(FMath::Atan2(S.Z, FMath::Max(In.RangeM, 1.0))) - Ops_DFP_GS;
+		// glideslope error as an angle seen from the lens; in close (< 60 m) the height error over 60 m (no blow-up at the ramp)
+		const double Rg = FMath::Max(In.RangeM, 0.0);
+		In.GsDevDeg = FMath::RadiansToDegrees(FMath::Atan2(S.Z - Rg * FMath::Tan(FMath::DegreesToRadians(Ops_DFP_GS)), FMath::Max(Rg, 60.0)));
 		In.LineupM = Lat;
 		In.AoaDeg = FMath::RadiansToDegrees(Jet->Model.Alpha);
 		In.FuelKlb = Jet->Model.Fuel * 2.20462 / 1000.0;
