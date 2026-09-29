@@ -1,4 +1,4 @@
-# Mission audio (M3): synthesized weapon/RWR/explosion sounds (numpy, seeded) + TTS radio/cockpit voices (macOS `say`)
+# Mission audio (M3): synthesized weapon/RWR/explosion sounds (numpy, seeded) + Piper TTS radio/cockpit voices
 # through a radio band-pass. Output: UE_Test/Niepotrzebne/m3/audio/*.wav (16-bit mono 44.1 kHz), imported by ue_21_mission.py.
 import os, subprocess, wave, numpy as np
 from scipy import signal
@@ -75,13 +75,29 @@ save("rwr_lock", np.sin(2 * np.pi * 1000 * tt) * (0.75 + 0.25 * (np.sin(2 * np.p
 f = np.where((tt * 8) % 1 < 0.5, 900.0, 1400.0)
 save("rwr_launch", np.sin(2 * np.pi * np.cumsum(f) / SR), 0.6)
 
-# ---- voices: macOS TTS -> radio (UHF) or cockpit (Betty) filter
-def say(name, text, voice, radio=True, rate=185):
-    aiff = os.path.join(OUT, name + ".aiff"); wav = os.path.join(OUT, name + "_raw.wav")
-    subprocess.run(["say", "-v", voice, "-r", str(rate), "-o", aiff, text], check=True)
-    subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16@44100", "-c", "1", aiff, wav], check=True)
-    with wave.open(wav) as w: x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float64) / 32768
-    os.remove(aiff); os.remove(wav)
+# ---- voices: Piper TTS (same public-domain-data voices as the carrier radio: en_US-norman-medium = LibriVox, en_US-ljspeech-medium =
+# LJ Speech) run in the Piper venv, then a UHF radio chain (WATCHTOWER) or a cockpit chain (warning voice)
+PIPER_PY = os.environ.get("OSR_PIPER_PY", "/private/tmp/claude-501/osr_carrier/tts/bin/python")
+PIPER_VOICES = os.environ.get("OSR_PIPER_VOICES", "/private/tmp/claude-501/osr_carrier/voices")
+PIPER_CODE = """
+import sys, wave, numpy as np
+from piper import PiperVoice
+v = PiperVoice.load(sys.argv[1]); text = sys.argv[2]
+x = np.concatenate([np.frombuffer(c.audio_int16_bytes, np.int16) for c in v.synthesize(text)])
+with wave.open(sys.argv[3], 'wb') as w:
+    w.setnchannels(1); w.setsampwidth(2); w.setframerate(v.config.sample_rate); w.writeframes(x.tobytes())
+"""
+def say(name, text, voice, radio=True, rate=1.0):
+    model = os.path.join(PIPER_VOICES, "en_US-%s-medium.onnx" % ("ljspeech" if voice == "Samantha" else "norman"))
+    raw = os.path.join(OUT, name + "_raw.wav")
+    subprocess.run([PIPER_PY, "-c", PIPER_CODE, model, text, raw], check=True)
+    with wave.open(raw) as w:
+        sr = w.getframerate(); x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float64) / 32768
+    os.remove(raw)
+    env = np.convolve(np.abs(x), np.ones(441) / 441, "same"); on = np.where(env > 0.02)[0]
+    x = x[max(on[0] - 200, 0):on[-1] + 600]
+    tt = np.arange(int(len(x) * SR / sr / rate)) * sr * rate / SR
+    x = np.interp(tt, np.arange(len(x)), x)
     if radio:
         x = bp(x, 350, 3000, 3); x = np.tanh(x / max(np.abs(x).max(), 1e-9) * 2.2)
         hiss = bp(noise(len(x)), 800, 5000) * 0.05
@@ -93,11 +109,11 @@ def say(name, text, voice, radio=True, rate=185):
 say("r_ingress", "Ridge one, Watchtower. Feet dry. Stay low in the canyon, the valley radars are up.", "Daniel")
 say("r_spiked", "Ridge one, you're spiked. Get low!", "Daniel")
 say("r_target_area", "Ridge one, target area. Pop up, lase the vent shaft, and drop.", "Daniel")
-say("r_hit", "Good hit! Good hit! Secondaries! The plant is done. Get out of there!", "Daniel", rate=205)
+say("r_hit", "Good hit! Good hit! Secondaries! The plant is done. Get out of there!", "Daniel", rate=1.1)
 say("r_miss", "Negative effect. The shaft is intact. Re-attack the vent.", "Daniel")
-say("r_bandits", "Bandits! Two Su fifty-sevens scrambling from the north-east airfield!", "Daniel", rate=200)
+say("r_bandits", "Bandits! Two Su fifty-sevens scrambling from the north-east airfield!", "Daniel", rate=1.08)
 say("r_feet_wet", "Ridge one, feet wet. Mother is west. Bring it home.", "Daniel")
-say("r_down", "Ridge one is down! Ridge one is down!", "Daniel", rate=200)
+say("r_down", "Ridge one is down! Ridge one is down!", "Daniel", rate=1.08)
 say("r_success", "Ridge one is aboard. Target destroyed. Outstanding work.", "Daniel")
-say("v_missile_launch", "Missile launch. Missile launch.", "Samantha", radio=False, rate=190)
-say("v_missile", "Missile. Missile.", "Samantha", radio=False, rate=190)
+say("v_missile_launch", "Missile launch. Missile launch.", "Samantha", radio=False, rate=1.05)
+say("v_missile", "Missile. Missile.", "Samantha", radio=False, rate=1.05)

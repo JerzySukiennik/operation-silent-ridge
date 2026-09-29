@@ -211,7 +211,7 @@ void FOsrStrikeAutotest::Step(AOsrMissionState* Ms, double Dt)
 		if (W->IrInbound > 0 || W->Flares > 20) { bFlarePending = true; }
 	}
 	const FVector Vent = Tg->VentCentre;
-	const FVector Aim = bMiss ? Vent + FVector(40.0, 0.0, 0.0) : Vent;
+	const FVector Aim = bMiss ? FVector(Vent.X + 40.0, Ground(Vent.X + 40.0, Vent.Z), Vent.Z) : Vent;   // miss run: a ground point 40 m east of the shaft
 	FVector2D Pr(0, 0);
 	const FVector Pos = Jet->Model.Position;
 	const double DistVent = Hdist(Pos, Vent);

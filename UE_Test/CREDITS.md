@@ -36,3 +36,13 @@ attribution required, listed for provenance. Fetched by `scripts/terrain_v2/fetc
 - Catapult launch (`cat_shot`) and arrested landing (`wire_trap`) sounds → cut from the DVIDS video "Abraham Lincoln conducts
   flight operations" (F-35C launches and traps on USS Abraham Lincoln, 2 Feb 2022), U.S. Navy video by MC3 Michael Singley,
   https://www.dvidshub.net/video/830382, public domain (U.S. government work).
+
+## M3 mission & combat (2026-09-29)
+
+- Target plant, vent shaft, SAM / radar vehicles, enemy airbase, Su-57-class fighter, missiles, LGBs → procedural, own work
+  (`Source/SilentRidgeUE/Mission*`, `RadarSite`, `SamMissile`, `WeaponBomb`, `EnemyAirbase`, `EnemyFighter`). The Sketchfab
+  CC-BY Su-57 / Pantsir candidates (REFERENCES 8.1 / 8.3) were not used yet (no Sketchfab API key in the Blender MCP addon).
+- Mission materials `M_MissionLit`, `M_MissionPuffAdd/Tr` → own work (`scripts/ue_21_mission.py`, uses the project's `T_noise`).
+- Gun, explosions, SAM motor, flare/chaff, bomb release, RWR tones → synthesized, own work (`scripts/mission/gen_mission_audio.py`).
+- Radio (WATCHTOWER) and cockpit warning voices → Piper TTS with `en_US-norman-medium` and `en_US-ljspeech-medium`
+  (public-domain training data, see the M3 carrier entry above), radio / cockpit filters own work (same script).
